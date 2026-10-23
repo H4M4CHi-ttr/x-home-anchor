@@ -15,7 +15,7 @@ X公式のホームタイムラインで、新着を表示した後も読んで�
 Git、Node.js 22.18以上（検証は24系）、npm、Chrome 120以上を使います。
 
 ```sh
-git clone https://github.com/akiweb8528/x-home-anchor.git
+git clone https://github.com/H4M4CHi-ttr/x-home-anchor.git
 cd x-home-anchor
 npm ci
 npm run build
@@ -37,6 +37,16 @@ npm run build
 ```
 
 コピー先を読み込んでいる場合は、その中身も新しい `dist` で置き換えます。その後、Chromeの拡張管理画面で拡張を「再読み込み」し、Xのタブも再読み込みしてください。拡張だけを再読み込みしても、既に開いたページの処理は更新されません。
+
+## ユーザースクリプト版
+
+コンテンツスクリプトのみを使う版です。位置保持と左上のカウンターが動作し、拡張のポップアップはありません。
+
+1. [Tampermonkey](https://www.tampermonkey.net/) を導入し、その案内に従ってユーザースクリプトの実行を許可します。
+2. [`x-home-anchor-v0.2.6.user.js`](release/x-home-anchor-v0.2.6.user.js?raw=true) を開いてインストールします。インストール画面が出ない場合は、ファイル全体を Tampermonkey の「新規スクリプト」に貼り付けて保存してください。
+3. 既に開いていたXのタブを再読み込みし、`https://x.com/home` を開きます。
+
+拡張版とユーザースクリプト版は、どちらか一方だけを有効にしてください。更新時は新しい `.user.js` を再インストールし、Xのタブを再読み込みします。停止時も Tampermonkey で無効にしてから、Xのタブを再読み込みしてください。
 
 ## 使い方
 

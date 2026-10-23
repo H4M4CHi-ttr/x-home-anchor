@@ -5,14 +5,15 @@ const scope = globalThis as typeof globalThis & { [singleton]?: () => void };
 scope[singleton]?.();
 function install() {
   const controller = new HomeController(document, window);
+  const runtime = globalThis.chrome?.runtime;
   const onMessage = (message: unknown, sender: chrome.runtime.MessageSender, respond: (response: unknown) => void) => {
-    if (sender.id !== chrome.runtime.id || typeof message !== 'object' || message === null) return;
+    if (!runtime?.id || sender.id !== runtime.id || typeof message !== 'object' || message === null) return;
     const command = (message as { command?: string }).command;
     if (command === 'status') respond(controller.status());
   };
-  chrome.runtime.onMessage.addListener(onMessage);
+  runtime?.onMessage?.addListener(onMessage);
   return () => {
-    controller.dispose(); chrome.runtime.onMessage.removeListener(onMessage);
+    controller.dispose(); runtime?.onMessage?.removeListener(onMessage);
   };
 }
 let uninstall = install();

@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { mkdir, readFile, rm } from 'node:fs/promises';
+import { copyFile, mkdir, readFile, rm } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -35,3 +35,6 @@ if (process.platform === 'win32') {
 }
 
 console.log(`Created ${archive}`);
+const userscript = resolve('release', `x-home-anchor-v${version}.user.js`);
+await copyFile('dist-userscript/x-home-anchor.user.js', userscript);
+console.log(`Created ${userscript}`);

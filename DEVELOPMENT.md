@@ -27,22 +27,28 @@ synthetic runtime checks, popup inspection, transport stubs and unverified scope
 `build` bundles the content script and popup, then copies their HTML/CSS, the
 manifest and `LICENSE` to `dist/`. It needs only this repository and its locked npm
 dependencies. Load `dist/` as an unpacked Chrome extension. Keep dependencies and
-the generated `dist/` directory out of Git.
+the generated `dist/` and `dist-userscript/` directories out of Git.
+The same content bundle is also written to `dist-userscript/x-home-anchor.user.js`
+with userscript metadata and the full MIT license. It contains no popup code;
+extension messaging is optional. Metadata uses the manifest version, URL matches
+and run timing. Synthetic tests cover startup without extension APIs, lifecycle
+cleanup and the extension's status messages, not installation in a userscript manager.
 
-## Distributable ZIP
+## Distributable ZIP and userscript
 
 On Windows, macOS or Linux, run `npm ci` and then `npm run package`.
 This uses PowerShell `Compress-Archive` on Windows and the system `zip` command
 on macOS/Linux (install `zip` first if missing). No additional npm packages are needed.
-The command builds `dist/` and creates `release/x-home-anchor-v<version>.zip`.
+The command builds both formats and creates `release/x-home-anchor-v<version>.zip`
+and `release/x-home-anchor-v<version>.user.js`.
 The ZIP contains the **contents** of `dist/` at its root, so `manifest.json`
 is available immediately after extraction. It includes `LICENSE`, but no source
-files or development dependencies. Unlike `dist/`, the versioned release ZIP
-is committed to Git so users can install without Node.js.
+files or development dependencies. Unlike the build directories, the versioned
+ZIP and userscript are committed to Git so users can install without Node.js.
 
 When shipping a new extension version, update versions as described below,
-regenerate the ZIP, and update the README download link. GitHub Releases may
-also use the same ZIP as a manually attached release asset.
+regenerate both files, and update the README download link. GitHub Releases may
+also use these files as manually attached release assets.
 
 ## Source responsibilities
 
