@@ -122,8 +122,21 @@ try {
   assert.equal(await evaluate('performance.timeOrigin'), delayedOrigin);
   await mouse('mouseReleased', p); reports.delayedActivityMenu = true;
 
-  for (const reason of ['missing-link', 'keydown', 'dispose', 'target-replaced', 'article-removed']) {
-    await reset(); await evaluate(reason === 'missing-link' ? 'omitActivity=true' : 'menuDelay=500');
+  for (const reason of ['missing-link', 'missing-more', 'inert-link']) {
+    await reset();
+    await evaluate(reason === 'missing-link' ? 'omitActivity=true'
+      : reason === 'missing-more' ? 'document.querySelector("button[data-testid=caret]").remove()' : 'inertActivity=true');
+    p = await point(); const origin = await evaluate('performance.timeOrigin');
+    await press(p); await delay(650);
+    if (reason !== 'missing-more') assert.equal(await evaluate('performance.timeOrigin'), origin);
+    await mouse('mouseReleased', p); await delay(1100);
+    assert.equal(await evaluate('location.href'), 'https://x.com/outer/status/111/quotes', reason);
+    assert.notEqual(await evaluate('performance.timeOrigin'), origin, reason);
+    reports[`activityFallback_${reason}`] = true;
+  }
+
+  for (const reason of ['keydown', 'dispose', 'target-replaced', 'article-removed']) {
+    await reset(); await evaluate('menuDelay=500');
     p = await point(); const origin = await evaluate('performance.timeOrigin');
     await press(p); await delay(650);
     if (reason === 'keydown') await command('Input.dispatchKeyEvent', {type:'keyDown',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});

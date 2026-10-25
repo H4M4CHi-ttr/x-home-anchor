@@ -48,6 +48,7 @@
   window.menuDelay = 0;
   window.moreClicks = 0;
   window.omitActivity = false;
+  window.inertActivity = false;
   document.addEventListener('click', e => {
     const more = e.target.closest('button[data-testid="caret"]');
     if (!more) return;
@@ -60,6 +61,7 @@
         link.href = '/outer/status/111/quotes'; link.textContent = 'View post activity';
         link.addEventListener('click', event => {
           event.preventDefault(); menu.remove();
+          if (inertActivity) return;
           navigations.push(link.href); record('quotes', { url:link.href });
           history.pushState({}, '', link.href);
           document.querySelector('#result').textContent = 'Quotes: ' + link.href;

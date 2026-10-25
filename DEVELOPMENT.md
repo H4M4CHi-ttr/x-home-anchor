@@ -106,9 +106,11 @@ controller interrupts position correction and its rendering guard. The hold read
 DOM URLs and requires no additional API calls or permissions. Navigation opens the
 held post's own more menu and activates the exact matching quotes link. It waits
 at most one second for asynchronous menu rendering and cancels on input, navigation,
-hiding, target replacement or disposal. Missing controls never fall back to a full
-reload. Browser checks compare timeOrigin; the fixture no longer turns a hard
-navigation into a same-document transition.
+hiding, target replacement or disposal. A missing more button immediately falls
+back to the resolved quotes URL; a missing or ineffective activity link falls back
+at the one-second deadline. Revalidate the page and held target before fallback;
+cancellation never triggers a reload. Browser checks compare timeOrigin; the
+fixture no longer turns a hard navigation into a same-document transition.
 
 Keep the DOM measurement limit at 500 outer-post elements, including boxes whose
 post IDs are unavailable. Never use a partial over-limit sample for correction.
