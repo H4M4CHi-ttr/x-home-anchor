@@ -1,0 +1,491 @@
+{
+  "date": "2026-10-25",
+  "browser": "Chrome/155.0.8059.85",
+  "method": "Headless Chrome CDP trusted input; unchanged dist/content.js; synthetic HTTPS documents; runtime messaging stub; same-document quotes navigation intercepted by fixture; all requests fulfilled or blocked",
+  "reports": {
+    "shortClick": {
+      "events": [
+        {
+          "type": "pointerdown",
+          "at": 85.39999999850988,
+          "trusted": true,
+          "pointerType": "mouse",
+          "pointerId": 1,
+          "button": 0
+        },
+        {
+          "type": "pointerup",
+          "at": 192.80000000074506,
+          "trusted": true,
+          "pointerType": "mouse",
+          "pointerId": 1,
+          "button": 0
+        },
+        {
+          "type": "menu",
+          "at": 193.09999999776483,
+          "trusted": true,
+          "detail": 1
+        }
+      ],
+      "menuClicks": 1,
+      "navigations": [],
+      "url": "https://x.com/home",
+      "scrollY": 0,
+      "result": "Ready"
+    },
+    "mouseHold": {
+      "beforeRelease": {
+        "events": [
+          {
+            "type": "pointerdown",
+            "at": 27.300000000745058,
+            "trusted": true,
+            "pointerType": "mouse",
+            "pointerId": 1,
+            "button": 0
+          },
+          {
+            "type": "quotes",
+            "at": 632.5,
+            "url": "https://x.com/outer/status/111/quotes"
+          },
+          {
+            "type": "quotes-frame",
+            "at": 633.1999999992549,
+            "text": "Quotes: https://x.com/outer/status/111/quotes",
+            "buttonTop": 410.875
+          }
+        ],
+        "menuClicks": 0,
+        "navigations": [
+          "https://x.com/outer/status/111/quotes"
+        ],
+        "url": "https://x.com/outer/status/111/quotes",
+        "scrollY": 0,
+        "result": "Quotes: https://x.com/outer/status/111/quotes"
+      },
+      "elapsedMs": 605.1999999992549,
+      "afterNextClick": {
+        "events": [
+          {
+            "type": "pointerdown",
+            "at": 27.300000000745058,
+            "trusted": true,
+            "pointerType": "mouse",
+            "pointerId": 1,
+            "button": 0
+          },
+          {
+            "type": "quotes",
+            "at": 632.5,
+            "url": "https://x.com/outer/status/111/quotes"
+          },
+          {
+            "type": "quotes-frame",
+            "at": 633.1999999992549,
+            "text": "Quotes: https://x.com/outer/status/111/quotes",
+            "buttonTop": 410.875
+          },
+          {
+            "type": "pointerup",
+            "at": 783.1999999992549,
+            "trusted": true,
+            "pointerType": "mouse",
+            "pointerId": 1,
+            "button": 0
+          },
+          {
+            "type": "pointerdown",
+            "at": 793.5999999977648,
+            "trusted": true,
+            "pointerType": "mouse",
+            "pointerId": 1,
+            "button": 0
+          },
+          {
+            "type": "pointerup",
+            "at": 836.5999999977648,
+            "trusted": true,
+            "pointerType": "mouse",
+            "pointerId": 1,
+            "button": 0
+          },
+          {
+            "type": "menu",
+            "at": 836.6999999992549,
+            "trusted": true,
+            "detail": 1
+          }
+        ],
+        "menuClicks": 1,
+        "navigations": [
+          "https://x.com/outer/status/111/quotes"
+        ],
+        "url": "https://x.com/outer/status/111/quotes",
+        "scrollY": 0,
+        "result": "Quotes: https://x.com/outer/status/111/quotes"
+      }
+    },
+    "move": {
+      "events": [
+        {
+          "type": "pointerdown",
+          "at": 19.199999999254942,
+          "trusted": true,
+          "pointerType": "mouse",
+          "pointerId": 1,
+          "button": 0
+        }
+      ],
+      "menuClicks": 0,
+      "navigations": [],
+      "url": "https://x.com/home",
+      "scrollY": 0,
+      "result": "Ready"
+    },
+    "leave": {
+      "events": [
+        {
+          "type": "pointerdown",
+          "at": 21.699999999254942,
+          "trusted": true,
+          "pointerType": "mouse",
+          "pointerId": 1,
+          "button": 0
+        }
+      ],
+      "menuClicks": 0,
+      "navigations": [],
+      "url": "https://x.com/home",
+      "scrollY": 0,
+      "result": "Ready"
+    },
+    "scroll": {
+      "events": [
+        {
+          "type": "pointerdown",
+          "at": 24.199999999254942,
+          "trusted": true,
+          "pointerType": "mouse",
+          "pointerId": 1,
+          "button": 0
+        }
+      ],
+      "menuClicks": 0,
+      "navigations": [],
+      "url": "https://x.com/home",
+      "scrollY": 50,
+      "result": "Ready"
+    },
+    "replacement": {
+      "events": [
+        {
+          "type": "pointerdown",
+          "at": 26.899999998509884,
+          "trusted": true,
+          "pointerType": "mouse",
+          "pointerId": 1,
+          "button": 0
+        }
+      ],
+      "menuClicks": 0,
+      "navigations": [],
+      "url": "https://x.com/home",
+      "scrollY": 0,
+      "result": "Ready"
+    },
+    "route": {
+      "events": [
+        {
+          "type": "pointerdown",
+          "at": 28.199999999254942,
+          "trusted": true,
+          "pointerType": "mouse",
+          "pointerId": 1,
+          "button": 0
+        }
+      ],
+      "menuClicks": 0,
+      "navigations": [],
+      "url": "https://x.com/home",
+      "scrollY": 0,
+      "result": "Ready"
+    },
+    "dispose": {
+      "events": [
+        {
+          "type": "pointerdown",
+          "at": 23.699999999254942,
+          "trusted": true,
+          "pointerType": "mouse",
+          "pointerId": 1,
+          "button": 0
+        }
+      ],
+      "menuClicks": 0,
+      "navigations": [],
+      "url": "https://x.com/home",
+      "scrollY": 0,
+      "result": "Ready"
+    },
+    "touchHoldOnDetailPage": {
+      "beforeRelease": {
+        "events": [
+          {
+            "type": "pointerdown",
+            "at": 145.10000000149012,
+            "trusted": true,
+            "pointerType": "touch",
+            "pointerId": 3,
+            "button": 0
+          },
+          {
+            "type": "quotes",
+            "at": 757.8000000007451,
+            "url": "https://x.com/outer/status/111/quotes"
+          },
+          {
+            "type": "quotes-frame",
+            "at": 758.3000000007451,
+            "text": "Quotes: https://x.com/outer/status/111/quotes",
+            "buttonTop": 410.875
+          }
+        ],
+        "menuClicks": 0,
+        "navigations": [
+          "https://x.com/outer/status/111/quotes"
+        ],
+        "url": "https://x.com/outer/status/111/quotes",
+        "scrollY": 0,
+        "result": "Quotes: https://x.com/outer/status/111/quotes"
+      },
+      "afterRelease": {
+        "events": [
+          {
+            "type": "pointerdown",
+            "at": 145.10000000149012,
+            "trusted": true,
+            "pointerType": "touch",
+            "pointerId": 3,
+            "button": 0
+          },
+          {
+            "type": "quotes",
+            "at": 757.8000000007451,
+            "url": "https://x.com/outer/status/111/quotes"
+          },
+          {
+            "type": "quotes-frame",
+            "at": 758.3000000007451,
+            "text": "Quotes: https://x.com/outer/status/111/quotes",
+            "buttonTop": 410.875
+          },
+          {
+            "type": "pointerup",
+            "at": 867.5,
+            "trusted": true,
+            "pointerType": "touch",
+            "pointerId": 3,
+            "button": 0
+          }
+        ],
+        "menuClicks": 0,
+        "navigations": [
+          "https://x.com/outer/status/111/quotes"
+        ],
+        "url": "https://x.com/outer/status/111/quotes",
+        "scrollY": 0,
+        "result": "Quotes: https://x.com/outer/status/111/quotes"
+      }
+    },
+    "otherMouseInputs": {
+      "events": [
+        {
+          "type": "pointerdown",
+          "at": 27,
+          "trusted": true,
+          "pointerType": "mouse",
+          "pointerId": 1,
+          "button": 2
+        },
+        {
+          "type": "pointerup",
+          "at": 681.3999999985099,
+          "trusted": true,
+          "pointerType": "mouse",
+          "pointerId": 1,
+          "button": 2
+        },
+        {
+          "type": "auxclick",
+          "at": 681.3999999985099,
+          "trusted": true,
+          "pointerType": "mouse",
+          "pointerId": 1,
+          "button": 2
+        },
+        {
+          "type": "contextmenu",
+          "at": 681.5,
+          "trusted": true,
+          "pointerType": "mouse",
+          "pointerId": 1,
+          "button": 2
+        },
+        {
+          "type": "pointerdown",
+          "at": 692.6999999992549,
+          "trusted": true,
+          "pointerType": "mouse",
+          "pointerId": 1,
+          "button": 1
+        },
+        {
+          "type": "pointerup",
+          "at": 1351.699999999255,
+          "trusted": true,
+          "pointerType": "mouse",
+          "pointerId": 1,
+          "button": 1
+        }
+      ],
+      "menuClicks": 0,
+      "navigations": [],
+      "url": "https://x.com/home",
+      "scrollY": 0,
+      "result": "Ready"
+    },
+    "otherInputs": {
+      "events": [
+        {
+          "type": "menu",
+          "at": 15.299999997019768,
+          "trusted": true,
+          "detail": 0
+        }
+      ],
+      "menuClicks": 1,
+      "navigations": [],
+      "url": "https://x.com/home",
+      "scrollY": 0,
+      "result": "Ready"
+    },
+    "refresh": {
+      "before": {
+        "y": 1050,
+        "covered": false,
+        "post": {
+          "id": "/synthetic/status/1006",
+          "top": 110
+        },
+        "actual": {
+          "id": "/synthetic/status/1006",
+          "top": 110
+        }
+      },
+      "after": {
+        "y": 7875,
+        "covered": false,
+        "post": {
+          "id": "/synthetic/status/1006",
+          "top": 110
+        },
+        "actual": {
+          "id": "/synthetic/status/1006",
+          "top": 110
+        }
+      },
+      "checkedFrames": 211,
+      "coveredFrames": 182
+    },
+    "refreshClickCancellation": true,
+    "refreshCancel_wheel": true,
+    "refreshCancel_resize": true,
+    "refreshCancel_tab": true,
+    "refreshCancel_dispose": true,
+    "refresh_replacement": {
+      "before": {
+        "y": 1050,
+        "covered": false,
+        "post": {
+          "id": "/synthetic/status/1006",
+          "top": 110
+        },
+        "actual": {
+          "id": "/synthetic/status/1006",
+          "top": 110
+        }
+      },
+      "after": {
+        "y": 7875,
+        "covered": false,
+        "post": {
+          "id": "/synthetic/status/1006",
+          "top": 110
+        },
+        "actual": {
+          "id": "/synthetic/status/1006",
+          "top": 110
+        }
+      },
+      "checkedFrames": 211
+    },
+    "refresh_late-page-scroll": {
+      "before": {
+        "y": 1050,
+        "covered": false,
+        "post": {
+          "id": "/synthetic/status/1006",
+          "top": 110
+        },
+        "actual": {
+          "id": "/synthetic/status/1006",
+          "top": 110
+        }
+      },
+      "after": {
+        "y": 7875,
+        "covered": false,
+        "post": {
+          "id": "/synthetic/status/1006",
+          "top": 110
+        },
+        "actual": {
+          "id": "/synthetic/status/1006",
+          "top": 110
+        }
+      },
+      "checkedFrames": 211
+    },
+    "refresh_imprecise-height": {
+      "before": {
+        "y": 1050,
+        "covered": false,
+        "post": {
+          "id": "/synthetic/status/1006",
+          "top": 110
+        },
+        "actual": {
+          "id": "/synthetic/status/1006",
+          "top": 110
+        }
+      },
+      "after": {
+        "y": 7875,
+        "covered": false,
+        "post": {
+          "id": "/synthetic/status/1006",
+          "top": 110
+        },
+        "actual": {
+          "id": "/synthetic/status/1006",
+          "top": 110
+        }
+      },
+      "checkedFrames": 211
+    },
+    "refreshNoUpdate": true
+  },
+  "errors": []
+}

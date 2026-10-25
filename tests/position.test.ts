@@ -72,13 +72,14 @@ for (const preliminary of ['reset', 'layout'] as const) {
       assert.equal(f.y, INITIAL_Y + INSERTION_HEIGHT);
       const expectedMoves = [preliminary === 'layout' ? 20 : INITIAL_Y, INITIAL_Y + INSERTION_HEIGHT - preliminaryY];
       assert.deepEqual(f.moves, expectedMoves);
-      assert.equal(f.keeper.refreshing, false);
-      assert.equal(f.keeper.correcting, false);
+      assert.equal(f.keeper.refreshing, true);
+      assert.equal(f.keeper.correcting, true);
 
       f.at(REFRESH_WAIT_MS); f.tick({ replaced: true, known });
       f.at(REFRESH_MAX_MS + 100); f.change({ replaced: true, known }); f.tick({ replaced: true, known });
       assert.equal(f.y, INITIAL_Y + INSERTION_HEIGHT);
       assert.deepEqual(f.moves, expectedMoves);
+      assert.equal(f.keeper.refreshing, false);
     });
   }
 }
@@ -102,7 +103,7 @@ test('recycled elements with new IDs and document growth still permit recovery a
   f.at(500 + APPROXIMATE_WAIT_MS); f.tick({ firstId: 101 });
   assert.equal(f.y, INITIAL_Y + INSERTION_HEIGHT);
   assert.deepEqual(f.moves, [INITIAL_Y, INSERTION_HEIGHT]);
-  assert.equal(f.keeper.refreshing, false);
+  assert.equal(f.keeper.refreshing, true);
   f.at(REFRESH_MAX_MS); f.tick({ firstId: 101 });
   assert.deepEqual(f.moves, [INITIAL_Y, INSERTION_HEIGHT]);
 });
@@ -114,7 +115,7 @@ test('a new post range after reset-only recovery permits a count estimate withou
   f.at(500 + APPROXIMATE_WAIT_MS); f.tick({ replaced: true });
   assert.equal(f.y, INITIAL_Y + INSERTION_HEIGHT);
   assert.deepEqual(f.moves, [INITIAL_Y, INSERTION_HEIGHT]);
-  assert.equal(f.keeper.refreshing, false);
+  assert.equal(f.keeper.refreshing, true);
   f.at(REFRESH_MAX_MS); f.tick({ replaced: true });
   assert.deepEqual(f.moves, [INITIAL_Y, INSERTION_HEIGHT]);
 });
@@ -229,4 +230,53 @@ test('ordinary layout correction stops at its original deadline', t => {
   assert.deepEqual(f.moves, [50, 50]);
   f.at(CORRECTION_MS + 500); f.change({ shift: 300 });
   assert.deepEqual(f.moves, [50, 50]);
+});
+
+
+test('a counted estimate keeps the original anchors until virtualized posts return', t => {
+  const f = fixture(t); f.refresh();
+  f.at(100); f.reset();
+  f.at(500); f.insertHeight(); f.change({ replaced: true });
+  f.at(500 + APPROXIMATE_WAIT_MS); f.tick({ replaced: true });
+  assert.equal(f.y, INITIAL_Y + INSERTION_HEIGHT);
+  f.at(500 + APPROXIMATE_WAIT_MS + 20); f.change({ replaced: true });
+  assert.equal(f.keeper.refreshing, true);
+  f.at(500 + APPROXIMATE_WAIT_MS + 80); f.change({ shift: INSERTION_HEIGHT + 525 });
+  assert.equal(f.y, INITIAL_Y + INSERTION_HEIGHT + 525);
+  f.at(REFRESH_MAX_MS); f.tick({ shift: INSERTION_HEIGHT + 525 });
+  assert.equal(f.keeper.refreshing, false);
+  assert.deepEqual(f.moves, [INITIAL_Y, INSERTION_HEIGHT, 525]);
+});
+
+
+test('input after a counted estimate cancels the remaining exact recovery', t => {
+  const f = fixture(t); f.refresh();
+  f.at(500); f.insertHeight(); f.change({ replaced: true });
+  f.at(500 + APPROXIMATE_WAIT_MS); f.tick({ replaced: true });
+  f.keeper.input();
+  f.at(1200); f.change({ shift: INSERTION_HEIGHT + 525 });
+  assert.equal(f.y, INITIAL_Y + INSERTION_HEIGHT);
+  assert.deepEqual(f.moves, [INSERTION_HEIGHT]);
+  assert.equal(f.keeper.refreshing, false);
+});
+
+
+test('page-driven virtualization scroll after the estimate still permits exact recovery', t => {
+  const f = fixture(t); f.refresh();
+  f.at(500); f.insertHeight(); f.change({ replaced: true });
+  f.at(500 + APPROXIMATE_WAIT_MS); f.tick({ replaced: true });
+  f.at(1200); f.pageScroll(INITIAL_Y + INSERTION_HEIGHT + 1051); f.change({ replaced: true });
+  assert.equal(f.keeper.refreshing, true);
+  f.at(1250); f.change({ shift: INSERTION_HEIGHT });
+  assert.equal(f.y, INITIAL_Y + INSERTION_HEIGHT);
+  assert.deepEqual(f.moves, [INSERTION_HEIGHT, -1051]);
+});
+
+
+test('replaced posts prefer document growth over an unrepresentative old post pitch', t => {
+  const f = fixture(t); f.refresh();
+  f.at(500); f.insertHeight(11962); f.change({ replaced: true });
+  f.at(500 + APPROXIMATE_WAIT_MS); f.tick({ replaced: true });
+  assert.equal(f.y, 13012);
+  assert.deepEqual(f.moves, [11962]);
 });

@@ -1,0 +1,40 @@
+{
+  "date": "2026-10-25",
+  "content_sha256": "cda0d92f0721c2f2f574f2be7ea9a8034625d038169cf1f64a978df1c84947d8",
+  "automated": {
+    "typecheck": "passed",
+    "unit_tests": {
+      "passed": 72,
+      "failed": 0
+    },
+    "browser": "Chrome/155.0.8059.85",
+    "evidence": "refresh-viewport-browser.json",
+    "scope": "Synthetic documents with trusted mouse/touch/keyboard input and stubbed extension messaging. Exact recovery, document growth, imprecise virtualized heights, late page scroll, root replacement, cancellation, and canvas pixels."
+  },
+  "live": {
+    "method": "Chrome DevTools MCP 1.10.1 autoConnect with Chrome permission; native unpacked extension in the user-selected AI Agent profile; observed the existing signed-in X home tab; trusted click on the real new-post control; temporary page-local DOM sampling only.",
+    "browser": "Chrome/155.0.8059.85",
+    "route": "https://x.com/home",
+    "tab": "For you",
+    "language": "ja",
+    "successful_runs_of_final_code": 1,
+    "displayed_count": 35,
+    "sampled_frames": 289,
+    "frames_with_original_anchor_at_original_position": 289,
+    "before_anchor_top_css_px": 223.33334350585938,
+    "after_anchor_top_css_px": 223.33334350585938,
+    "absolute_position_error_css_px": 0.0,
+    "before_scroll_y_css_px": 0,
+    "after_scroll_y_css_px": 15814,
+    "cover_frames": 140,
+    "cover_removed": true,
+    "earlier_trials": "Two earlier local revisions exposed premature cancellation on page-driven scroll, then overestimation from old post pitch. Those failed trials were used to add regression tests; they are not successful runs of the final code.",
+    "privacy": "Raw live post identifiers, text and screenshots remain outside the repository in the local lab directory. This record contains aggregate geometry only."
+  },
+  "limits": [
+    "One final-code acquisition on the Japanese For you timeline; Following, other accounts, languages and long-running use are not live-verified.",
+    "The page still scrolls internally. The viewport copy masks intermediate frames; recovery remains bounded and can be approximate if saved IDs never return.",
+    "A DOM copy may show transient differences for incompletely decoded media. Repost holds were verified synthetically, not exercised on live posts.",
+    "No network request count, acquisition-frequency increase, or universal 35-post limit is established."
+  ]
+}

@@ -27,6 +27,18 @@ export function timelineRoot(doc: Document): HTMLElement | null {
   return null;
 }
 
+// Keep the live sticky header outside the refresh-only viewport copy.
+export function timelineViewportTop(root: HTMLElement, win: Window): number {
+  const primary = root.closest(primarySelector);
+  let top = 0;
+  for (let node = primary?.querySelector<HTMLElement>('[role="tablist"]') ?? null; node && primary?.contains(node); node = node.parentElement) {
+    const position = win.getComputedStyle(node).position;
+    const rect = node.getBoundingClientRect();
+    if ((position === 'sticky' || position === 'fixed') && rect.top <= 1 && rect.bottom > 0) top = Math.max(top, rect.bottom);
+  }
+  return top;
+}
+
 const excludedContent = '[data-testid="quoteTweet"], [data-testid="card.wrapper"], [data-testid="tweetText"]';
 function insideExcludedContent(element: Element, article: HTMLElement, timestamp?: Element): boolean {
   for (let node: Element | null = element; node && node !== article; node = node.parentElement) {

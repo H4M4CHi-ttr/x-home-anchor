@@ -35,6 +35,7 @@ interface RefreshMeasurement {
   boxes: { element: HTMLElement; y: number }[];
   ids: string[];
   documentHeight: number;
+  initialDocumentHeight: number;
   restoredY?: number;
   representativeHeight?: number;
   displayedCount?: number;
@@ -69,11 +70,11 @@ export class PositionKeeper {
   private refreshStart: number | null = null;
   private lastActivity = 0;
   private sawUpdate = false;
-  private resetUsed = false;
   private missing = false;
   private knownY: number;
   private measurement: RefreshMeasurement | null = null;
   private precisionRestored = false;
+  private approximationUsed = false;
   private geometryAvailable = false;
   private win: Window;
   constructor(win: Window) { this.win = win; this.knownY = win.scrollY; }
@@ -114,11 +115,12 @@ export class PositionKeeper {
     this.measurement = {
       y: this.win.scrollY, boxes: boxes.map(box => ({ element: box.element, y: box.top + this.win.scrollY })),
       ids: posts.map(post => post.id), documentHeight: this.win.document.documentElement.scrollHeight,
+      initialDocumentHeight: this.win.document.documentElement.scrollHeight,
       representativeHeight: representativeHeight(boxes, this.win.innerHeight),
       ...(displayedCount !== undefined && displayedCount > 0 && Number.isSafeInteger(displayedCount) ? { displayedCount } : {}),
     };
     this.refreshStart = performance.now(); this.until = this.refreshStart + REFRESH_MAX_MS;
-    this.lastActivity = this.refreshStart; this.sawUpdate = false; this.resetUsed = false; this.missing = false; this.precisionRestored = false;
+    this.lastActivity = this.refreshStart; this.sawUpdate = false; this.missing = false; this.precisionRestored = false; this.approximationUsed = false;
   }
   private completionDeadline() {
     if (this.refreshStart === null) return this.until;
@@ -136,11 +138,9 @@ export class PositionKeeper {
   private acceptScroll() {
     const y = this.win.scrollY;
     if (Math.abs(y - this.knownY) < 1) return true;
-    // One top-reset episode belongs to a recognized refresh. Arbitrary positions
-    // and a second reset terminate it rather than fighting a page's scroll loop.
-    if (this.refreshing && !this.resetUsed && y <= 1 && this.knownY > 1) {
-      this.resetUsed = true; this.lastActivity = performance.now(); return true;
-    }
+    // X may adjust scroll again as its virtualized range is measured. Genuine
+    // input already cancels the refresh in the controller; keep its hard deadline.
+    if (this.refreshing) { this.lastActivity = performance.now(); return true; }
     this.interrupt(); return false;
   }
   private measureUpdate(posts: Post[], boxes: PostBox[]) {
@@ -192,8 +192,12 @@ export class PositionKeeper {
   }
   private approximationTarget() {
     const m = this.measurement;
-    if (!m) return null;
-    const addedHeight = m.addedHeight ?? (m.displayedCount && m.representativeHeight ? m.displayedCount * m.representativeHeight : undefined);
+    if (!m || this.approximationUsed) return null;
+    const growth = this.win.document.documentElement.scrollHeight - m.initialDocumentHeight;
+    // X's replacement can have a very different post pitch. Prefer the observed
+    // document growth; virtualized heights remain an estimate until an ID returns.
+    const addedHeight = m.addedHeight ?? (growth > 1 ? growth : undefined)
+      ?? (m.displayedCount && m.representativeHeight ? m.displayedCount * m.representativeHeight : undefined);
     return addedHeight === undefined ? null : { y: m.y + addedHeight, addedHeight, estimated: m.addedHeight === undefined };
   }
   private approximationAt() {
@@ -202,7 +206,7 @@ export class PositionKeeper {
   }
   private approximate() {
     const m = this.measurement;
-    if (!m || !this.geometryAvailable || this.precisionRestored || this.refreshStart === null) return;
+    if (!m || !this.geometryAvailable || this.precisionRestored || this.approximationUsed || this.refreshStart === null) return;
     const readyAt = m.updateAt === undefined ? this.refreshStart + REFRESH_WAIT_MS : m.updateAt + APPROXIMATE_WAIT_MS;
     if (performance.now() < readyAt) return;
     const target = this.approximationTarget();
@@ -218,8 +222,9 @@ export class PositionKeeper {
     // anchoring or a page-maintained scroll position.
     if (plannedY > before) this.win.scrollTo({ top: plannedY, behavior: 'instant' });
     this.knownY = this.win.scrollY;
-    // No later geometry change may issue another large estimate for this action.
-    this.interrupt();
+    // Estimate once, but retain exact anchors while the virtualizer catches up.
+    this.approximationUsed = true;
+    if (!this.anchors.length) this.interrupt();
   }
   changed(posts: Post[], context?: PositionContext) {
     const boxes = context?.boxes ?? posts;
