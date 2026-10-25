@@ -16,7 +16,7 @@
     "node": "v24.22.1",
     "testsPassed": 68,
     "testsFailed": 0,
-    "coverage": "24 existing checks plus 44 gesture/adapter cases. Fake-clock input event sequences verify 599 ms release and 600 ms threshold, release/click suppression, independent and keyboard input, all cancellation paths, mutation/reinsertion, quotes/analytics, ambiguous targets, touch context menu and singleton listener disposal."
+    "coverage": "24 existing checks plus 44 gesture/adapter cases. Fake-clock input event sequences verify 599 ms release and 600 ms threshold, release/click suppression, independent and keyboard input, all cancellation paths, mutation/reinsertion, quotes/analytics, ambiguous targets, touch context menu and listener disposal."
   },
   "browser": {
     "details": "0.2.6-browser.json",
@@ -65,5 +65,12 @@
     "Browser automation evaluates the built script in the fixture main world with messaging stubbed and same-document quote navigation intercepted; native isolated extension installation was not tested.",
     "The keyboard harness initially retained the native right-click context menu; closing it and using a fresh document verified Enter without changing product code. Browser runner exit/error cleanup was corrected and an invalid Chrome executable was confirmed to fail promptly."
   ],
-  "cleanup": "Dedicated CDP Chrome closed and task temporary profile removed after each run; build/dependency directories are standard ignored outputs."
+  "cleanup": "Dedicated CDP Chrome closed and task temporary profile removed after each run; build/dependency directories are standard ignored outputs.",
+  "publication": {
+    "implementationCommit": "b5000ede401ae68a27f7654fa6c4d9a72973ef1d",
+    "download": "https://github.com/akiweb8528/x-home-anchor/raw/refs/heads/main/release/x-home-anchor-v0.2.6.zip",
+    "httpStatus": 200,
+    "bytes": 11932,
+    "remoteMatchesLocalArchive": true
+  }
 }
