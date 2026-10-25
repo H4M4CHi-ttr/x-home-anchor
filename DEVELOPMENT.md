@@ -3,7 +3,8 @@
 This Manifest V3 extension uses an isolated content script and an action popup.
 There is no background worker, runtime package dependency or server. The manifest
 matches only `https://x.com/*`; the controller activates the timeline features on
-`/home`. Position preservation is always enabled, with no saved setting or API
+`/home`. Repost-button holds work on identifiable posts independently of home/tab
+recognition. Position preservation is always enabled, with no saved setting or API
 permissions. Installation and user operations are described in [README.md](README.md).
 
 ## Build and basic checks
@@ -18,11 +19,25 @@ npm run build
 
 `check` runs TypeScript checking, small self-contained tests using synthetic data,
 and the product build. The tests cover basic operations and the build contract,
-including the manifest and license in `dist`. They do not reproduce a full browser
-timeline or measure rendering timing. They cannot establish live-X compatibility.
+including the manifest and license in `dist`. Synthetic DOM tests also exercise
+hold timing boundaries, release/click ordering, cancellation, quote boundaries and
+target replacement. They do not reproduce a full browser timeline or measure
+rendering timing. They cannot establish live-X compatibility.
 
-The [0.2.5 browser verification record](verification/0.2.5.json) describes the
-synthetic runtime checks, popup inspection, transport stubs and unverified scope.
+The [0.2.6 verification record](verification/0.2.6.json) describes the automated
+checks, synthetic browser interaction evidence and unverified live-X scope.
+The [0.2.5 browser verification record](verification/0.2.5.json) retains the earlier
+timeline checks, popup inspection and transport stubs.
+
+`npm run test:browser` builds and drives a dedicated headless Chrome through CDP
+using trusted mouse/touch/keyboard input and `tests/fixtures/repost.html`.
+Set `CHROME_BIN` to the Chrome executable if it is not `/opt/google/chrome/chrome`.
+Every document response is synthetic; other requests are blocked. Extension
+messaging is stubbed and the fixture intercepts quote navigation to keep the
+document alive for release/click checks. It writes the current browser evidence
+to `verification/0.2.6-browser.json` and `verification/0.2.6-hold.png`, then closes
+its browser and removes its temporary profile. This verifies neither native
+extension installation nor the live X site's handlers or appearance.
 
 `build` bundles the content script and popup, then copies their HTML/CSS, the
 manifest and `LICENSE` to `dist/`. It needs only this repository and its locked npm
@@ -53,6 +68,7 @@ also use the same ZIP as a manually attached release asset.
 | `src/position.ts` | Bounded position correction, recovery, approximation and interruption |
 | `src/refresh-paint-guard.ts` | Refresh-only rendering checkpoint and cleanup |
 | `src/refresh-total.ts` | Page-memory total of operated new-post controls' displayed counts |
+| `src/repost-hold.ts` | Delegated repost-button hold, cancellation and matching release/click suppression |
 | `src/model.ts` | Timeline, DOM sample and position-preservation types |
 | `src/content.ts` | Extension messages, singleton installation and page lifecycle |
 | `src/popup.*` | Extension name and current position-preservation status |
@@ -74,6 +90,17 @@ to an estimated target. User input, explicit navigation and timeline changes ove
 position correction. Do not replace page scroll
 or History APIs or add request interception, API replay, automatic acquisition,
 credential access or telemetry.
+
+The repost hold resolves the button's outer-post timestamp through the adapter at
+press start and again at 600 ms. It navigates immediately at the threshold, without
+waiting for release or delaying short clicks. Cancel on movement beyond 10 CSS
+pixels, leaving the button, scroll, pointer cancellation, target replacement,
+navigation, hiding or disposal. Keep one delegated listener set and at most one
+pending gesture; do not tie it to a recognized home tab. Suppress only the completed
+gesture's release/click and the tracked touch gesture's context menu, preserving
+later gestures and ordinary keyboard, right- and middle-button actions. Before quote navigation the
+controller interrupts position correction and its rendering guard. The hold reads
+DOM URLs and requires no additional API calls or permissions.
 
 Keep the DOM measurement limit at 500 outer-post elements, including boxes whose
 post IDs are unavailable. Never use a partial over-limit sample for correction.

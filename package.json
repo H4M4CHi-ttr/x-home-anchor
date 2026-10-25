@@ -1,6 +1,6 @@
 {
   "name": "x-home-anchor",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "private": true,
   "license": "MIT",
   "type": "module",
@@ -12,7 +12,8 @@
     "package": "node scripts/package.mjs",
     "typecheck": "tsc --noEmit",
     "test": "npm run build && node --test tests/*.test.ts",
-    "check": "npm run typecheck && npm test"
+    "check": "npm run typecheck && npm test",
+    "test:browser": "npm run build && node scripts/verify-browser.mjs"
   },
   "devDependencies": {
     "@types/chrome": "^0.3.5",

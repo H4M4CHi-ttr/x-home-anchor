@@ -34,13 +34,8 @@ function insideExcludedContent(element: Element, article: HTMLElement, timestamp
   }
   return element.closest(articleSelector) !== article;
 }
-export function postId(article: HTMLElement): string | null {
-  // The outer header owns identity. Only its timestamp link may itself have
-  // role=link; an enclosing role-link remains a quote/card boundary.
-  const header = [...article.querySelectorAll('[data-testid="User-Name"]')]
-    .find(el => !insideExcludedContent(el, article));
-  if (!header) return null;
-  const ids = new Set<string>();
+function headerStatusLinks(header: Element, article: HTMLElement): { id: string; url: URL }[] {
+  const links: { id: string; url: URL }[] = [];
   for (const time of header.querySelectorAll('time')) {
     const link = time.closest('a[href]');
     if (insideExcludedContent(time, article, link ?? undefined)) continue;
@@ -49,9 +44,36 @@ export function postId(article: HTMLElement): string | null {
     try { url = new URL(link.getAttribute('href') ?? '', 'https://x.com'); } catch { continue; }
     if (url.hostname !== 'x.com' || url.protocol !== 'https:') continue;
     const match = url.pathname.match(/^\/[^/]+\/status\/(\d{1,30})(?:\/)?$/);
-    if (match) ids.add(match[1]);
+    if (match) links.push({ id: match[1], url });
   }
+  return links;
+}
+export function postId(article: HTMLElement): string | null {
+  // The outer header owns identity. Only its timestamp link may itself have
+  // role=link; an enclosing role-link remains a quote/card boundary.
+  const header = [...article.querySelectorAll('[data-testid="User-Name"]')]
+    .find(el => !insideExcludedContent(el, article));
+  if (!header) return null;
+  const ids = new Set(headerStatusLinks(header, article).map(link => link.id));
   return ids.size === 1 ? [...ids][0] : null;
+}
+
+export interface RepostTarget { button: HTMLButtonElement; article: HTMLElement; url: string }
+export function repostTarget(target: EventTarget | null): RepostTarget | null {
+  if (!(target instanceof Element)) return null;
+  const button = target.closest<HTMLButtonElement>('button[data-testid="retweet"], button[data-testid="unretweet"]');
+  if (!button || button.hasAttribute('disabled') || button.getAttribute('aria-disabled') === 'true') return null;
+  const article = button.closest<HTMLElement>(articleSelector);
+  if (!article || insideExcludedContent(button, article)
+    || article.parentElement?.closest(`${articleSelector}, ${excludedContent}, [role="link"]`)) return null;
+  const headers = [...article.querySelectorAll('[data-testid="User-Name"]')]
+    .filter(header => !insideExcludedContent(header, article));
+  if (headers.length !== 1) return null;
+  const urls = new Set(headerStatusLinks(headers[0], article)
+    .filter(({ url }) => url.origin === 'https://x.com' && !url.username && !url.password)
+    .map(({ url }) => `https://x.com${url.pathname.replace(/\/$/, '')}/quotes`));
+  if (urls.size !== 1) return null;
+  return { button, article, url: [...urls][0] };
 }
 
 export function readPosts(root: HTMLElement): PostSample {

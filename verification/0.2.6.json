@@ -1,0 +1,69 @@
+{
+  "date": "2026-10-25",
+  "version": "0.2.6",
+  "baseline": "e5a7816f2c680649a75791c6d0bfbc92b18337d9",
+  "referenceVersions": {
+    "ai-chat": "eb94b12955b10e75df381f4a5e37d9141ceaf1f2",
+    "knowledge": "a4c8a6410cda93668f69232b51bb7f5bef7e1e80"
+  },
+  "automated": {
+    "commands": [
+      "npm ci",
+      "npm run check",
+      "npm run test:browser",
+      "npm run package"
+    ],
+    "node": "v24.22.1",
+    "testsPassed": 68,
+    "testsFailed": 0,
+    "coverage": "24 existing checks plus 44 gesture/adapter cases. Fake-clock input event sequences verify 599 ms release and 600 ms threshold, release/click suppression, independent and keyboard input, all cancellation paths, mutation/reinsertion, quotes/analytics, ambiguous targets, touch context menu and singleton listener disposal."
+  },
+  "browser": {
+    "details": "0.2.6-browser.json",
+    "screenshot": "0.2.6-hold.png",
+    "browser": "Chrome/152.0.7977.82",
+    "method": "Headless Chrome CDP trusted input; unchanged dist/content.js; synthetic HTTPS documents; runtime messaging stub; same-document quotes navigation intercepted by fixture; all requests fulfilled or blocked",
+    "mouseNavigationMs": 602.3999999999069,
+    "mouseResultFrameMs": 603.2999999998137,
+    "touchNavigationMs": 600.8999999999069,
+    "checks": [
+      "Trusted short mouse/touch input preserves menu activation",
+      "Trusted mouse and touch holds navigate before release once; release does not activate menu; next mouse click activates normally",
+      "Reinjected content script still navigates only once",
+      "Home with unknown selected tab and a post detail route both support holds",
+      "Mouse move/leave, document scroll, button replacement, transient SPA navigation and disposal cancel holds",
+      "Right and middle mouse input preserve contextmenu/auxclick; Enter preserves native menu activation"
+    ],
+    "mcp": {
+      "purpose": "Independent trusted short-click check on synthetic data-URL page running unchanged dist/content.js",
+      "menuClicks": 1,
+      "quotesNavigations": 0,
+      "consoleErrorsOrWarnings": 0,
+      "cleanup": "Closed only task-created page 2; existing page 1 remains about:blank"
+    },
+    "assessment": "Inspected the synthetic held-state screenshot: original button geometry remains stable, quotes result is visible and no repost menu is present. This is fixture rendering, not X appearance or human usability testing. Navigation-event and requestAnimationFrame timestamps measure application/frame state, not human perceived latency. No product CSS or button/count layout was added."
+  },
+  "design": {
+    "authority": "QUAL-002 P2, D7-D9",
+    "decision": "Retain the native repost control and short-click timing. Resolve its outer post, navigate at 600 ms while still held, interrupt position correction, and suppress only the completed gesture. Document the alternate hold in README without adding inline text or moving controls. Small touch jitter is allowed; deliberate movement, native scrolling and lifecycle changes cancel."
+  },
+  "package": {
+    "path": "release/x-home-anchor-v0.2.6.zip",
+    "sha256": "0db6ce6d89de623f02bd24a8853ea91c43fe31317dcb00e3b38e153b97534d6d",
+    "files": {
+      "LICENSE": "b9da3e00b216d122ed74dd3daad59d0ff0eb4b03962c502c88dd62f2c3bc56ae",
+      "content.js": "2ef7e7f2f7b27092e212c1da88d4b83f48602ebe48c04cd0fbf028683690da7d",
+      "manifest.json": "be9dd1dbf41e1484466390454fa852bd3af328776078b75ca7c0344cf4e987d9",
+      "popup.css": "277e505f0301efefeafde8dc7c7068a6b21ffb30349fba1902d1713d4409cfd9",
+      "popup.html": "a699b3de7d93e710cc363e477ce66c94afdfbb6224da8dd707849a1b3445ba91",
+      "popup.js": "66547d61e394e3d6d4dd71d27c9e0b2f8cc71ffb4223cbb2dcd816ccf4b78a08"
+    },
+    "verification": "Every ZIP file byte-equals the current dist file; six root files, no source/dependencies, matching version and original MIT LICENSE. Manifest permissions unchanged."
+  },
+  "limits": [
+    "No authenticated/live X operation was performed. Compatibility with X handlers, real quotes loading, OS-native touch long-press behavior and subjective operation comfort remain for the user to verify.",
+    "Browser automation evaluates the built script in the fixture main world with messaging stubbed and same-document quote navigation intercepted; native isolated extension installation was not tested.",
+    "The keyboard harness initially retained the native right-click context menu; closing it and using a fresh document verified Enter without changing product code. Browser runner exit/error cleanup was corrected and an invalid Chrome executable was confirmed to fail promptly."
+  ],
+  "cleanup": "Dedicated CDP Chrome closed and task temporary profile removed after each run; build/dependency directories are standard ignored outputs."
+}

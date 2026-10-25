@@ -1,6 +1,7 @@
 import { clickIntent, isHome, readPosts, refreshDetails, timelineKind, timelineRoot } from './adapter.ts';
 import { RefreshPaintGuard } from './refresh-paint-guard.ts';
 import { RefreshTotal } from './refresh-total.ts';
+import { RepostHold } from './repost-hold.ts';
 import { PositionKeeper, INPUT_QUIET_MS } from './position.ts';
 import type { PostSample, State, Timeline } from './model.ts';
 
@@ -10,6 +11,7 @@ export class HomeController {
   private keeper: PositionKeeper;
   private paintGuard: RefreshPaintGuard;
   private refreshTotal: RefreshTotal;
+  private repostHold: RepostHold;
   private state: State = 'outside';
   private overLimit = false;
   private frame = 0;
@@ -29,6 +31,10 @@ export class HomeController {
     this.keeper = new PositionKeeper(win);
     this.paintGuard = new RefreshPaintGuard(doc, win, () => this.checkScroll(), () => this.keeper.refreshing);
     this.refreshTotal = new RefreshTotal(doc);
+    this.repostHold = new RepostHold(doc, win, url => {
+      this.keeper.interrupt(); this.detach();
+      win.location.assign(url);
+    });
     this.rootObserver = new MutationObserver(() => { this.reconcile(); this.flush(); });
     this.resizeObserver = new ResizeObserver(() => {
       // ResizeObserver runs before paint; avoid deferring a late image's correction a frame.
@@ -137,6 +143,7 @@ export class HomeController {
   }
   reconcile() {
     if (this.disposed) return;
+    this.repostHold.reconcile();
     this.lastPath = this.win.location.pathname;
     const home = isHome(new URL(this.win.location.href));
     this.refreshTotal.show(home);
@@ -180,6 +187,7 @@ export class HomeController {
     return { state: this.state };
   }
   dispose() {
+    this.repostHold.dispose();
     this.disposed = true; this.keeper.interrupt(); this.detach(); this.lifecycle.abort(); this.pageObserver.disconnect(); this.refreshTotal.dispose();
     this.win.cancelAnimationFrame(this.frame); this.win.clearInterval(this.poll);
   }
