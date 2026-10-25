@@ -1,0 +1,40 @@
+{
+  "date": "2026-10-26",
+  "base": "3193e803dbf1fac14e7c47d5954b27852a713b5d",
+  "contentSha256": "ec7ca98c5c4c1c69983002563a9291a5f8c981e70fb12c0ddd5c1a2e0e2cdb03",
+  "automated": {
+    "check": "passed",
+    "unitTests": 71,
+    "browser": "Chrome/155.0.8059.85",
+    "browserGroups": 17,
+    "browserErrors": 0,
+    "hardNavigationIntercepted": false,
+    "removedPostWhileMenuPending": "passed"
+  },
+  "live": {
+    "environment": "Existing AI Agent Chrome; installed unpacked extension; trusted mouse holds of 750 ms",
+    "home": {
+      "correctQuotesUrl": true,
+      "timeOriginUnchanged": true,
+      "timestampFocusedBeforeHold": true
+    },
+    "detailFirstHold": {
+      "correctQuotesUrl": true,
+      "timeOriginUnchanged": true,
+      "timestampFocusedBeforeHold": true
+    },
+    "directDetailWithQuotedPost": {
+      "correctOuterQuotesUrl": true,
+      "timeOriginUnchanged": true,
+      "timestampFocusedBeforeHold": true
+    },
+    "shortClick": {
+      "nativeRepostMenu": true,
+      "sameDetailPage": true
+    }
+  },
+  "notChecked": [
+    "Physical touch input on live X",
+    "Full live-X timeline position-preservation regression"
+  ]
+}

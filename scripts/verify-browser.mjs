@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -8,7 +8,8 @@ import { setTimeout as delay } from 'node:timers/promises';
 // CDP supplies sustained trusted input unavailable in the MCP click interface.
 // Every network request is fulfilled locally or aborted; no live X is contacted.
 const root = new URL('../', import.meta.url);
-const releaseVersion = JSON.parse(await readFile(new URL('package.json', root), 'utf8')).version;
+const evidenceRoot = new URL('../verification/local/', import.meta.url);
+await mkdir(evidenceRoot, { recursive: true });
 const fixture = await readFile(new URL('tests/fixtures/repost.html', root), 'utf8');
 const content = await readFile(new URL('dist/content.js', root), 'utf8');
 const profile = await mkdtemp(join(tmpdir(), 'x-home-anchor-browser-'));
@@ -96,9 +97,11 @@ try {
   assert.equal(result.menuClicks, 1); assert.equal(result.navigations.length, 0);
   reports.shortClick = result;
 
-  await reset(); await evaluate(content); p = await point(); await press(p); await delay(400);
+  await reset(); await evaluate(content); await evaluate(`document.querySelector('a[href="/outer/status/111"]').focus()`); const originBeforeHold = await evaluate('performance.timeOrigin'); p = await point(); await press(p); await delay(400);
   assert.equal((await read()).navigations.length, 0);
   await delay(290); result = await read();
+  assert.equal(await evaluate('performance.timeOrigin'), originBeforeHold, 'a hold must use the app router without reloading the document');
+  assert.equal(await evaluate('moreClicks'), 1);
   assert.deepEqual(result.navigations, ['https://x.com/outer/status/111/quotes']);
   assert.equal(result.menuClicks, 0);
   assert.equal(result.events.some(event => event.type === 'pointerup'), false);
@@ -106,11 +109,33 @@ try {
   assert.ok(elapsed >= 595 && elapsed < 800, `navigation onset ${elapsed}ms`);
   assert.ok(result.events.some(event => event.type === 'quotes-frame' && event.text.includes('/outer/status/111/quotes')));
   const screenshot = await command('Page.captureScreenshot', { format: 'png' });
-  await writeFile(new URL(`verification/${releaseVersion}-hold.png`, root), Buffer.from(screenshot.data, 'base64'));
+  await writeFile(new URL('repost-spa-hold.png', evidenceRoot), Buffer.from(screenshot.data, 'base64'));
   await mouse('mouseReleased', p); assert.equal((await read()).menuClicks, 0);
   await press(p); await delay(40); await mouse('mouseReleased', p);
   assert.equal((await read()).menuClicks, 1);
   reports.mouseHold = { beforeRelease: result, elapsedMs: elapsed, afterNextClick: await read() };
+
+  await reset(); await evaluate('menuDelay=150'); p = await point();
+  const delayedOrigin = await evaluate('performance.timeOrigin');
+  await press(p); await delay(650); assert.equal((await read()).navigations.length, 0);
+  await delay(200); assert.equal((await read()).navigations.length, 1);
+  assert.equal(await evaluate('performance.timeOrigin'), delayedOrigin);
+  await mouse('mouseReleased', p); reports.delayedActivityMenu = true;
+
+  for (const reason of ['missing-link', 'keydown', 'dispose', 'target-replaced', 'article-removed']) {
+    await reset(); await evaluate(reason === 'missing-link' ? 'omitActivity=true' : 'menuDelay=500');
+    p = await point(); const origin = await evaluate('performance.timeOrigin');
+    await press(p); await delay(650);
+    if (reason === 'keydown') await command('Input.dispatchKeyEvent', {type:'keyDown',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
+    if (reason === 'dispose') await evaluate('globalThis[Symbol.for("x-home-anchor.instance")]()');
+    if (reason === 'target-replaced') await evaluate('document.querySelector("button[data-testid=retweet]").replaceWith(document.querySelector("button[data-testid=retweet]").cloneNode(true))');
+    if (reason === 'article-removed') await evaluate('document.querySelector("article").remove()');
+    await delay(1100);
+    assert.equal((await read()).navigations.length, 0, reason);
+    assert.equal(await evaluate('performance.timeOrigin'), origin, reason);
+    assert.equal((await read()).url, 'https://x.com/home', reason);
+    await mouse('mouseReleased', p); reports[`activityCancel_${reason}`] = true;
+  }
 
   for (const kind of ['move', 'leave', 'scroll', 'replacement', 'route', 'dispose']) {
     await reset(); p = await point(); await press(p); await delay(180);
@@ -125,15 +150,18 @@ try {
   }
 
   await reset('/outer/status/111');
+  const originBeforeDetailHold = await evaluate('performance.timeOrigin');
   await command('Emulation.setTouchEmulationEnabled', { enabled: true });
   p = await point();
   const touch = type => command('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ ...p, id: 0, radiusX: 2, radiusY: 2 }] });
   await touch('touchStart'); await delay(100); await touch('touchEnd');
   assert.equal((await read()).menuClicks, 1);
   await evaluate('document.querySelector("#menu")?.remove(); menuClicks=0; events=[]; navigations=[]; document.querySelector("button[data-testid=retweet]").dataset.testid="unretweet"');
+  await evaluate(`document.querySelector('a[href="/outer/status/111"]').focus()`);
   await touch('touchStart'); await delay(400); assert.equal((await read()).navigations.length, 0);
   await delay(300); result = await read(); assert.equal(result.navigations.length, 1); assert.equal(result.menuClicks, 0);
   await touch('touchEnd'); await delay(60); assert.equal((await read()).menuClicks, 0);
+  assert.equal(await evaluate('performance.timeOrigin'), originBeforeDetailHold, 'detail hold must keep the document');
   reports.touchHoldOnDetailPage = { beforeRelease: result, afterRelease: await read() };
 
   await command('Emulation.setTouchEmulationEnabled', { enabled: false });
@@ -152,9 +180,9 @@ try {
   assert.equal((await read()).menuClicks, 1);
   reports.otherInputs = await read();
   assert.deepEqual(errors, []);
-  const output = { date: new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Tokyo' }), version: releaseVersion,
-    browser: version.product, method: 'Headless Chrome CDP trusted input; unchanged dist/content.js; synthetic HTTPS documents; runtime messaging stub; same-document quotes navigation intercepted by fixture; all requests fulfilled or blocked', reports, errors };
-  await writeFile(new URL(`verification/${releaseVersion}-browser.json`, root), JSON.stringify(output, null, 2) + '\n');
+  const output = { date: new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Tokyo' }),
+    browser: version.product, method: 'Headless Chrome CDP trusted input; unchanged dist/content.js; synthetic HTTPS documents; runtime messaging stub; app-owned activity link handles same-document quotes routing; full document navigation is not intercepted; all requests fulfilled or blocked', reports, errors };
+  await writeFile(new URL('repost-spa-browser.json', evidenceRoot), JSON.stringify(output, null, 2) + '\n');
   console.log(`Browser verification passed (${version.product}); mouse hold navigation ${elapsed.toFixed(1)} ms`);
 } finally {
   if (!ended) void send('Browser.close').catch(() => {});
