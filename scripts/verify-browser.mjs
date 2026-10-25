@@ -187,10 +187,18 @@ try {
   assert.equal(await evaluate('badClicks'), 1, 'the next intentional click must work normally');
   reports.refreshClickCancellation = true;
 
-  for (const action of ['wheel', 'resize', 'tab', 'dispose']) {
+  for (const action of ['wheel', 'resize', 'keyboard', 'tab', 'dispose']) {
     await beginRefresh(); await delay(300);
     if (action === 'wheel') await command('Input.dispatchMouseEvent', { type:'mouseWheel', x:400, y:400, deltaX:0, deltaY:240 });
     if (action === 'resize') await command('Emulation.setDeviceMetricsOverride', { width:810, height:900, deviceScaleFactor:1, mobile:false });
+    if (action === 'keyboard') {
+      await command('Page.bringToFront');
+      await evaluate('document.querySelector("#refresh").focus(); window.focusStates=[]; document.addEventListener("focusin",e=>{if(e.target.closest?.("section"))focusStates.push({covered:readViewport().covered})},true)');
+      for (const type of ['keyDown', 'keyUp']) await command('Input.dispatchKeyEvent', { type, key:'Tab', code:'Tab', windowsVirtualKeyCode:9 });
+      const focus = await evaluate('focusStates');
+      assert.ok(focus.length > 0, 'Tab must retain ordinary focus navigation');
+      assert.ok(focus.every(state => !state.covered), 'reveal the timeline before moving focus to a new post');
+    }
     if (action === 'tab') await evaluate('document.querySelector("[role=tab]").textContent="Following";document.querySelector("[role=tab]").setAttribute("aria-selected","true")');
     if (action === 'dispose') await evaluate('globalThis[Symbol.for("x-home-anchor.instance")]()');
     await delay(100);

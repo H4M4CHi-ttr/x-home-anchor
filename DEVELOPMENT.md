@@ -34,12 +34,13 @@ timeline checks, popup inspection and transport stubs.
 `npm run test:browser` builds and drives a dedicated headless Chrome through CDP
 using trusted mouse/touch/keyboard input and the synthetic repost/refresh fixtures.
 Refresh checks cover per-frame post identity and position, canvas pixels, accidental-click
-prevention, root replacement, late page scroll, imprecise heights and cancellation.
+prevention, keyboard focus, root replacement, late page scroll, imprecise heights and cancellation.
 Set `CHROME_BIN` to the Chrome executable if it is not `/opt/google/chrome/chrome`.
 Every document response is synthetic; other requests are blocked. Extension
 messaging is stubbed and the fixture intercepts quote navigation to keep the
 document alive for release/click checks. It writes the current browser evidence
-to `verification/refresh-viewport-browser.json` and `verification/refresh-viewport-*.png`, then closes
+to ignored local files `verification/refresh-viewport-browser.json` and
+`verification/refresh-viewport-*.png`, then closes
 its browser and removes its temporary profile. This verifies neither native
 extension installation nor the live X site's handlers or appearance.
 

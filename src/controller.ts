@@ -131,7 +131,7 @@ export class HomeController {
     for (const type of ['wheel', 'touchstart', 'touchmove', 'pointerdown']) this.win.addEventListener(type, interrupt, { signal, passive: true, capture: true });
     this.win.addEventListener('resize', interrupt, { signal, passive: true });
     this.win.addEventListener('keydown', event => {
-      if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' ', 'j', 'k'].includes(event.key)) interrupt();
+      if (this.paintGuard.running || ['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' ', 'j', 'k'].includes(event.key)) interrupt();
     }, { signal, capture: true });
     this.win.addEventListener('click', event => {
       const intent = clickIntent(event.target);
