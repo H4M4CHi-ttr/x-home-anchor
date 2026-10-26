@@ -8,8 +8,9 @@ import { setTimeout as delay } from 'node:timers/promises';
 // CDP supplies sustained trusted input unavailable in the MCP click interface.
 // Every network request is fulfilled locally or aborted; no live X is contacted.
 const root = new URL('../', import.meta.url);
-const releaseVersion = JSON.parse(await readFile(new URL('package.json', root), 'utf8')).version;
+const evidencePrefix = 'refresh-viewport';
 const fixture = await readFile(new URL('tests/fixtures/repost.html', root), 'utf8');
+let activeFixture = fixture;
 const content = await readFile(new URL('dist/content.js', root), 'utf8');
 const profile = await mkdtemp(join(tmpdir(), 'x-home-anchor-browser-'));
 const browser = spawn(process.env.CHROME_BIN ?? '/opt/google/chrome/chrome', [
@@ -51,7 +52,7 @@ function send(method, params = {}, sessionId) {
     browser.stdio[3].write(JSON.stringify({ id, method, params, sessionId }) + '\0');
   });
 }
-const deadline = setTimeout(() => browser.kill('SIGKILL'), 45000);
+const deadline = setTimeout(() => browser.kill('SIGKILL'), 90000);
 let session;
 const command = (method, params) => send(method, params, session);
 async function evaluate(expression) {
@@ -69,7 +70,7 @@ try {
     const { requestId, request, resourceType } = message.params;
     void (resourceType === 'Document' && request.url.startsWith('https://x.com/')
       ? command('Fetch.fulfillRequest', { requestId, responseCode: 200,
-        responseHeaders: [{ name: 'Content-Type', value: 'text/html; charset=utf-8' }], body: Buffer.from(fixture).toString('base64') })
+        responseHeaders: [{ name: 'Content-Type', value: 'text/html; charset=utf-8' }], body: Buffer.from(activeFixture).toString('base64') })
       : command('Fetch.failRequest', { requestId, errorReason: 'BlockedByClient' })).catch(error => errors.push(String(error)));
   });
   await command('Page.enable'); await command('Runtime.enable');
@@ -106,7 +107,7 @@ try {
   assert.ok(elapsed >= 595 && elapsed < 800, `navigation onset ${elapsed}ms`);
   assert.ok(result.events.some(event => event.type === 'quotes-frame' && event.text.includes('/outer/status/111/quotes')));
   const screenshot = await command('Page.captureScreenshot', { format: 'png' });
-  await writeFile(new URL(`verification/${releaseVersion}-hold.png`, root), Buffer.from(screenshot.data, 'base64'));
+  await writeFile(new URL(`verification/${evidencePrefix}-hold.png`, root), Buffer.from(screenshot.data, 'base64'));
   await mouse('mouseReleased', p); assert.equal((await read()).menuClicks, 0);
   await press(p); await delay(40); await mouse('mouseReleased', p);
   assert.equal((await read()).menuClicks, 1);
@@ -151,10 +152,105 @@ try {
   for (const type of ['keyDown', 'keyUp']) await command('Input.dispatchKeyEvent', { type, key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13, text: type === 'keyDown' ? '\r' : '' });
   assert.equal((await read()).menuClicks, 1);
   reports.otherInputs = await read();
+  activeFixture = await readFile(new URL('tests/fixtures/refresh.html', root), 'utf8');
+  async function beginRefresh(scenario = 'virtualized') {
+    await reset();
+    const atBoundary = ['reading-boundary', 'tall-boundary', 'single-boundary'].includes(scenario);
+    await evaluate(`window.scenario=${JSON.stringify(scenario)};scrollTo(0,${atBoundary ? 0 : 1050})`);
+    if (scenario === 'custom') await evaluate('document.querySelector("[role=tab]").textContent="AI"');
+    if (scenario === 'single-boundary') await evaluate('document.querySelector("#refresh").textContent="Show 1 new post"');
+    await delay(1000);
+    const before = await evaluate('readViewport()');
+    p = await evaluate('(()=>{const r=document.querySelector("#refresh").getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2}})()');
+    await press(p); await mouse('mouseReleased', p);
+    return before;
+  }
+  const beforeRefresh = await beginRefresh();
+  await delay(300);
+  assert.deepEqual(await evaluate('Array.from(document.querySelector("#x-home-refresh-cover canvas").getContext("2d").getImageData(0,0,1,1).data)'), [220, 80, 140, 255]);
+  const coverShot = await command('Page.captureScreenshot', { format: 'png' });
+  await writeFile(new URL(`verification/${evidencePrefix}-refresh-cover.png`, root), Buffer.from(coverShot.data, 'base64'));
+  await delay(3300);
+  const refreshed = await evaluate('({frames, final:readViewport(), counter:document.querySelector("#x-home-new-post-total").getAttribute("aria-label")})');
+  assert.ok(refreshed.frames.some(frame => frame.covered), 'refresh must retain the old viewport while the virtualized list is replaced');
+  assert.ok(refreshed.frames.every(frame => frame.post?.id === beforeRefresh.post.id && Math.abs(frame.post.top - beforeRefresh.post.top) < 1), 'no intermediate frame may reveal the reset or a different post');
+  assert.equal(refreshed.final.covered, false);
+  assert.equal(refreshed.final.post.id, beforeRefresh.post.id);
+  assert.ok(Math.abs(refreshed.final.post.top - beforeRefresh.post.top) < 1);
+  assert.equal(refreshed.final.y, 1050 + 35 * 195, 'recover the exact anchor after the document-growth estimate');
+  assert.match(refreshed.counter, /35$/);
+  reports.refresh = { before: beforeRefresh, after: refreshed.final, checkedFrames: refreshed.frames.length, coveredFrames: refreshed.frames.filter(frame => frame.covered).length };
+  const refreshShot = await command('Page.captureScreenshot', { format: 'png' });
+  await writeFile(new URL(`verification/${evidencePrefix}-refresh.png`, root), Buffer.from(refreshShot.data, 'base64'));
+  for (const scenario of ['custom', 'reading-boundary', 'tall-boundary', 'single-boundary']) {
+    const before = await beginRefresh(scenario); await delay(3600);
+    const result = await evaluate('({frames,final:readViewport()})');
+    const expectedId = scenario === 'custom' ? before.post.id : scenario === 'single-boundary' ? '/synthetic/status/2000' : '/synthetic/status/2034';
+    const expectedTop = scenario === 'custom' ? before.post.top : 80;
+    assert.ok(result.frames.some(frame => frame.covered), scenario);
+    assert.ok(result.frames.every(frame => frame.covered
+      ? frame.post?.id === before.post.id && Math.abs(frame.post.top - before.post.top) < 1
+      : frame.post?.id === expectedId && Math.abs(frame.post.top - expectedTop) < 1), scenario);
+    if (scenario === 'single-boundary') assert.ok(result.frames.every(frame => frame.y === 0), 'one already visible new post needs no scroll estimate');
+    assert.equal(result.final.covered, false, scenario);
+    assert.equal(result.final.post.id, expectedId, scenario);
+    assert.ok(Math.abs(result.final.post.top - expectedTop) < 1, scenario);
+    reports[`refresh_${scenario}`] = { before, after:result.final, checkedFrames:result.frames.length };
+    if (scenario === 'reading-boundary') {
+      const shot = await command('Page.captureScreenshot', { format: 'png' });
+      await writeFile(new URL(`verification/${evidencePrefix}-reading-boundary.png`, root), Buffer.from(shot.data, 'base64'));
+    }
+  }
+  await beginRefresh(); await delay(300);
+  const coveredAction = await evaluate('(()=>{const r=document.querySelector("#underlying-action").getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2}})()');
+  await press(coveredAction); await mouse('mouseReleased', coveredAction);
+  assert.equal(await evaluate('badClicks'), 0, 'a click on the frozen viewport must not activate a different underlying post');
+  assert.equal(await evaluate('readViewport().covered'), false);
+  await press(coveredAction); await mouse('mouseReleased', coveredAction);
+  assert.equal(await evaluate('badClicks'), 1, 'the next intentional click must work normally');
+  reports.refreshClickCancellation = true;
+
+  for (const action of ['wheel', 'resize', 'keyboard', 'tab', 'dispose']) {
+    await beginRefresh(); await delay(300);
+    if (action === 'wheel') await command('Input.dispatchMouseEvent', { type:'mouseWheel', x:400, y:400, deltaX:0, deltaY:240 });
+    if (action === 'resize') await command('Emulation.setDeviceMetricsOverride', { width:810, height:900, deviceScaleFactor:1, mobile:false });
+    if (action === 'keyboard') {
+      await command('Page.bringToFront');
+      await evaluate('document.querySelector("#refresh").focus(); window.focusStates=[]; document.addEventListener("focusin",e=>{if(e.target.closest?.("section"))focusStates.push({covered:readViewport().covered})},true)');
+      for (const type of ['keyDown', 'keyUp']) await command('Input.dispatchKeyEvent', { type, key:'Tab', code:'Tab', windowsVirtualKeyCode:9 });
+      const focus = await evaluate('focusStates');
+      assert.ok(focus.length > 0, 'Tab must retain ordinary focus navigation');
+      assert.ok(focus.every(state => !state.covered), 'reveal the timeline before moving focus to a new post');
+    }
+    if (action === 'tab') await evaluate('document.querySelector("[role=tab]").textContent="Following";document.querySelector("[role=tab]").setAttribute("aria-selected","true")');
+    if (action === 'dispose') await evaluate('globalThis[Symbol.for("x-home-anchor.instance")]()');
+    await delay(100);
+    assert.equal(await evaluate('readViewport().covered'), false, action);
+    const cancelledY = await evaluate('scrollY');
+    await delay(1000);
+    assert.equal(await evaluate('scrollY'), cancelledY, `${action} must not resume the cancelled estimate`);
+    reports[`refreshCancel_${action}`] = true;
+    if (action === 'resize') await command('Emulation.setDeviceMetricsOverride', { width:800, height:900, deviceScaleFactor:1, mobile:false });
+  }
+  for (const scenario of ['replacement', 'late-page-scroll', 'imprecise-height']) {
+    const beforeReplacement = await beginRefresh(scenario); await delay(3600);
+    const replacementResult = await evaluate('({frames,final:readViewport()})');
+    assert.ok(replacementResult.frames.every(frame => frame.post?.id === beforeReplacement.post.id && Math.abs(frame.post.top - beforeReplacement.post.top) < 1), 'a replaced timeline must retain the original viewport copy');
+    assert.equal(replacementResult.final.covered, false);
+    assert.equal(replacementResult.final.post.id, beforeReplacement.post.id);
+    reports[`refresh_${scenario}`] = { before:beforeReplacement, after:replacementResult.final, checkedFrames:replacementResult.frames.length };
+  }
+
+  await reset(); await evaluate('window.scenario="no-update";document.querySelector("#refresh").textContent="Show new posts";scrollTo(0,1050)'); await delay(1000);
+  p = await evaluate('(()=>{const r=document.querySelector("#refresh").getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2}})()');
+  await press(p); await mouse('mouseReleased', p); await delay(3300);
+  assert.equal(await evaluate('readViewport().covered'), false, 'an unchanged timeline must not stay frozen');
+  assert.equal(await evaluate('scrollY'), 1050);
+  reports.refreshNoUpdate = true;
   assert.deepEqual(errors, []);
-  const output = { date: new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Tokyo' }), version: releaseVersion,
+  const output = { date: new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Tokyo' }),
     browser: version.product, method: 'Headless Chrome CDP trusted input; unchanged dist/content.js; synthetic HTTPS documents; runtime messaging stub; same-document quotes navigation intercepted by fixture; all requests fulfilled or blocked', reports, errors };
-  await writeFile(new URL(`verification/${releaseVersion}-browser.json`, root), JSON.stringify(output, null, 2) + '\n');
+  await writeFile(new URL(`verification/${evidencePrefix}-browser.json`, root), JSON.stringify(output, null, 2) + '\n');
   console.log(`Browser verification passed (${version.product}); mouse hold navigation ${elapsed.toFixed(1)} ms`);
 } finally {
   if (!ended) void send('Browser.close').catch(() => {});

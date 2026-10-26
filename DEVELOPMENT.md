@@ -3,7 +3,8 @@
 This Manifest V3 extension uses an isolated content script and an action popup.
 There is no background worker, runtime package dependency or server. The manifest
 matches only `https://x.com/*`; the controller activates the timeline features on
-`/home`. Repost-button holds work on identifiable posts independently of home/tab
+`/home`, including named custom tabs. Tab identity combines its header-tablist
+position and label, so duplicate labels remain distinct. Repost-button holds work on identifiable posts independently of home/tab
 recognition. Position preservation is always enabled, with no saved setting or API
 permissions. Installation and user operations are described in [README.md](README.md).
 
@@ -24,18 +25,24 @@ hold timing boundaries, release/click ordering, cancellation, quote boundaries a
 target replacement. They do not reproduce a full browser timeline or measure
 rendering timing. They cannot establish live-X compatibility.
 
-The [0.2.6 verification record](verification/0.2.6.json) describes the automated
+The [refresh viewport verification record](verification/refresh-viewport.json) separates current synthetic
+checks from the scoped live-X acquisitions. Raw live-page data stays outside the
+repository. The [0.2.6 verification record](verification/0.2.6.json) describes the automated
 checks, synthetic browser interaction evidence and unverified live-X scope.
 The [0.2.5 browser verification record](verification/0.2.5.json) retains the earlier
 timeline checks, popup inspection and transport stubs.
 
 `npm run test:browser` builds and drives a dedicated headless Chrome through CDP
-using trusted mouse/touch/keyboard input and `tests/fixtures/repost.html`.
+using trusted mouse/touch/keyboard input and the synthetic repost/refresh fixtures.
+Refresh checks cover per-frame post identity and position, canvas pixels, accidental-click
+prevention, keyboard focus, root replacement, late page scroll, imprecise heights,
+custom tabs, unread-boundary alignment (including tall posts) and cancellation.
 Set `CHROME_BIN` to the Chrome executable if it is not `/opt/google/chrome/chrome`.
 Every document response is synthetic; other requests are blocked. Extension
 messaging is stubbed and the fixture intercepts quote navigation to keep the
 document alive for release/click checks. It writes the current browser evidence
-to `verification/0.2.6-browser.json` and `verification/0.2.6-hold.png`, then closes
+to ignored local files `verification/refresh-viewport-browser.json` and
+`verification/refresh-viewport-*.png`, then closes
 its browser and removes its temporary profile. This verifies neither native
 extension installation nor the live X site's handlers or appearance.
 
@@ -66,22 +73,44 @@ also use the same ZIP as a manually attached release asset.
 | `src/adapter.ts` | X selectors, home/tab recognition, outer-post identity and interaction classification |
 | `src/controller.ts` | Lifecycle, observers, user input and status |
 | `src/position.ts` | Bounded position correction, recovery, approximation and interruption |
-| `src/refresh-paint-guard.ts` | Refresh-only rendering checkpoint and cleanup |
+| `src/refresh-paint-guard.ts` | Refresh-only viewport copy, rendering checkpoint and cleanup |
 | `src/refresh-total.ts` | Page-memory total of operated new-post controls' displayed counts |
 | `src/repost-hold.ts` | Delegated repost-button hold, cancellation and matching release/click suppression |
 | `src/model.ts` | Timeline, DOM sample and position-preservation types |
 | `src/content.ts` | Extension messages, singleton installation and page lifecycle |
 | `src/popup.*` | Extension name and current position-preservation status |
 
+The refresh guard copies the mounted timeline into a clipped fixed viewport outside
+`body`, leaving X's virtualized cells and document geometry unchanged. Its clone is
+inert and hidden from accessibility APIs; the outer surface consumes a press that
+cancels it, preventing a stale displayed post from activating a different underlying
+post. Videos and canvases use temporary canvas pixels when available. No copy is
+persisted or transmitted. Preserve this copy when the timeline root is replaced;
+remove it on input, navigation, resize, hiding or disposal. Real pointer input takes
+priority over page-driven scroll changes, and the original five-second deadline never
+extends. Normal completion waits
+two animation frames for the destination range to mount before revealing it.
+
 Keep X-specific assumptions in the adapter. A recognized timeline with unknown
 post IDs remains distinct from an unrecognized region; quote IDs must never replace
 outer-post IDs. After trusted recognized new-post activation, prefer exact restoration,
-then one bounded downward approximation. Observed update evidence allows approximation
+then one bounded downward approximation while retaining the original anchors until
+the original deadline. Recovered IDs can correct the estimate without repeating it.
+When the old first post below the refresh control is recovered, a uniquely
+identified new post immediately before it becomes the reading anchor at the sticky
+header's lower edge. Promote it only once; keep the old viewport cover until the
+normal reveal and preserve all cancellation/deadline rules. Unknown adjacent posts
+or previously known IDs must not be promoted. Promotion retires the old insertion
+estimate, including when the new reading anchor already has zero displacement. The original known-ID set is temporary
+and bounded by the same 500-post sample.
+Observed update evidence allows approximation
 after a 650 ms recovery grace; an inconclusive update still allows count-based
-fallback at three seconds when a displayed count and representative pitch are
-available. A temporarily absent region may return within the original five-second
+fallback at three seconds when document growth or a displayed count and representative pitch are
+available. Use positive document growth from the original activation before count ×
+old pitch; the virtualizer can replace the list with much shorter or taller posts.
+Treat growth as an estimate until a saved ID returns. A temporarily absent region may return within the original five-second
 deadline, but no movement occurs while the region is unrecognized. Exact restoration
-covers the measured update, including a page top reset; a later insertion can still
+covers the measured update, including page-driven scroll resets and subsequent virtualizer adjustments; a later insertion can still
 need correction. Compare it with the restored geometry rather than permanently
 disabling approximation after any successful correction. Keep count targets relative
 to the original activation position, discard stale measured heights when a later

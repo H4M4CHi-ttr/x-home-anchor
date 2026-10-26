@@ -72,13 +72,14 @@ for (const preliminary of ['reset', 'layout'] as const) {
       assert.equal(f.y, INITIAL_Y + INSERTION_HEIGHT);
       const expectedMoves = [preliminary === 'layout' ? 20 : INITIAL_Y, INITIAL_Y + INSERTION_HEIGHT - preliminaryY];
       assert.deepEqual(f.moves, expectedMoves);
-      assert.equal(f.keeper.refreshing, false);
-      assert.equal(f.keeper.correcting, false);
+      assert.equal(f.keeper.refreshing, true);
+      assert.equal(f.keeper.correcting, true);
 
       f.at(REFRESH_WAIT_MS); f.tick({ replaced: true, known });
       f.at(REFRESH_MAX_MS + 100); f.change({ replaced: true, known }); f.tick({ replaced: true, known });
       assert.equal(f.y, INITIAL_Y + INSERTION_HEIGHT);
       assert.deepEqual(f.moves, expectedMoves);
+      assert.equal(f.keeper.refreshing, false);
     });
   }
 }
@@ -102,7 +103,7 @@ test('recycled elements with new IDs and document growth still permit recovery a
   f.at(500 + APPROXIMATE_WAIT_MS); f.tick({ firstId: 101 });
   assert.equal(f.y, INITIAL_Y + INSERTION_HEIGHT);
   assert.deepEqual(f.moves, [INITIAL_Y, INSERTION_HEIGHT]);
-  assert.equal(f.keeper.refreshing, false);
+  assert.equal(f.keeper.refreshing, true);
   f.at(REFRESH_MAX_MS); f.tick({ firstId: 101 });
   assert.deepEqual(f.moves, [INITIAL_Y, INSERTION_HEIGHT]);
 });
@@ -114,7 +115,7 @@ test('a new post range after reset-only recovery permits a count estimate withou
   f.at(500 + APPROXIMATE_WAIT_MS); f.tick({ replaced: true });
   assert.equal(f.y, INITIAL_Y + INSERTION_HEIGHT);
   assert.deepEqual(f.moves, [INITIAL_Y, INSERTION_HEIGHT]);
-  assert.equal(f.keeper.refreshing, false);
+  assert.equal(f.keeper.refreshing, true);
   f.at(REFRESH_MAX_MS); f.tick({ replaced: true });
   assert.deepEqual(f.moves, [INITIAL_Y, INSERTION_HEIGHT]);
 });
@@ -229,4 +230,113 @@ test('ordinary layout correction stops at its original deadline', t => {
   assert.deepEqual(f.moves, [50, 50]);
   f.at(CORRECTION_MS + 500); f.change({ shift: 300 });
   assert.deepEqual(f.moves, [50, 50]);
+});
+
+
+test('a counted estimate keeps the original anchors until virtualized posts return', t => {
+  const f = fixture(t); f.refresh();
+  f.at(100); f.reset();
+  f.at(500); f.insertHeight(); f.change({ replaced: true });
+  f.at(500 + APPROXIMATE_WAIT_MS); f.tick({ replaced: true });
+  assert.equal(f.y, INITIAL_Y + INSERTION_HEIGHT);
+  f.at(500 + APPROXIMATE_WAIT_MS + 20); f.change({ replaced: true });
+  assert.equal(f.keeper.refreshing, true);
+  f.at(500 + APPROXIMATE_WAIT_MS + 80); f.change({ shift: INSERTION_HEIGHT + 525 });
+  assert.equal(f.y, INITIAL_Y + INSERTION_HEIGHT + 525);
+  f.at(REFRESH_MAX_MS); f.tick({ shift: INSERTION_HEIGHT + 525 });
+  assert.equal(f.keeper.refreshing, false);
+  assert.deepEqual(f.moves, [INITIAL_Y, INSERTION_HEIGHT, 525]);
+});
+
+
+test('input after a counted estimate cancels the remaining exact recovery', t => {
+  const f = fixture(t); f.refresh();
+  f.at(500); f.insertHeight(); f.change({ replaced: true });
+  f.at(500 + APPROXIMATE_WAIT_MS); f.tick({ replaced: true });
+  f.keeper.input();
+  f.at(1200); f.change({ shift: INSERTION_HEIGHT + 525 });
+  assert.equal(f.y, INITIAL_Y + INSERTION_HEIGHT);
+  assert.deepEqual(f.moves, [INSERTION_HEIGHT]);
+  assert.equal(f.keeper.refreshing, false);
+});
+
+
+test('page-driven virtualization scroll after the estimate still permits exact recovery', t => {
+  const f = fixture(t); f.refresh();
+  f.at(500); f.insertHeight(); f.change({ replaced: true });
+  f.at(500 + APPROXIMATE_WAIT_MS); f.tick({ replaced: true });
+  f.at(1200); f.pageScroll(INITIAL_Y + INSERTION_HEIGHT + 1051); f.change({ replaced: true });
+  assert.equal(f.keeper.refreshing, true);
+  f.at(1250); f.change({ shift: INSERTION_HEIGHT });
+  assert.equal(f.y, INITIAL_Y + INSERTION_HEIGHT);
+  assert.deepEqual(f.moves, [INSERTION_HEIGHT, -1051]);
+});
+
+
+test('replaced posts prefer document growth over an unrepresentative old post pitch', t => {
+  const f = fixture(t); f.refresh();
+  f.at(500); f.insertHeight(11962); f.change({ replaced: true });
+  f.at(500 + APPROXIMATE_WAIT_MS); f.tick({ replaced: true });
+  assert.equal(f.y, 13012);
+  assert.deepEqual(f.moves, [11962]);
+});
+
+
+for (const height of [180, 1200]) {
+  test(`refresh reveals the closest new post from its top below the sticky header; height ${height}`, t => {
+    const f = fixture(t); f.pageScroll(0);
+    const top = 112;
+    const before = f.sample({ shift: top });
+    f.keeper.refresh(before.posts, { ...before, displayedCount: COUNT, boundary: { id: '1', top } });
+    const element = {} as HTMLElement;
+    const read = () => {
+      const old = f.sample({ shift: INSERTION_HEIGHT + top });
+      const next = { id: 'new-tail', element, top: old.boxes[0].top - height, bottom: old.boxes[0].top };
+      return { posts: [next, ...old.posts], boxes: [next, ...old.boxes] };
+    };
+    f.at(180); f.insertHeight();
+    let current = read(); f.keeper.changed(current.posts, current);
+    assert.equal(f.y, INSERTION_HEIGHT - height);
+    assert.equal(read().posts[0].top, top);
+    f.at(500); f.pageScroll(0);
+    f.keeper.scrolled(() => read().posts, read);
+    assert.equal(read().posts[0].top, top, 'a later page scroll must preserve the new reading anchor');
+  });
+}
+
+test('refresh does not promote an already known predecessor to the new reading anchor', t => {
+  const f = fixture(t); f.pageScroll(0);
+  const top = 112;
+  const element = {} as HTMLElement;
+  const read = (shift: number) => {
+    const old = f.sample({ shift: top + shift });
+    const previous = { id: 'known-before', element, top: old.boxes[0].top - 180, bottom: old.boxes[0].top };
+    return { posts: [previous, ...old.posts], boxes: [previous, ...old.boxes] };
+  };
+  const before = read(0);
+  f.keeper.refresh(before.posts, { ...before, displayedCount: COUNT, boundary: { id: '1', top } });
+  f.at(180); f.insertHeight();
+  const after = read(INSERTION_HEIGHT); f.keeper.changed(after.posts, after);
+  assert.equal(f.y, INSERTION_HEIGHT);
+});
+
+
+test('a single new post already at the reading position does not receive a later count estimate', t => {
+  const f = fixture(t); f.pageScroll(0);
+  const top = 112;
+  const before = f.sample({ shift: top });
+  f.keeper.refresh(before.posts, { ...before, displayedCount: 1, boundary: { id: '1', top } });
+  const element = {} as HTMLElement;
+  const read = () => {
+    const old = f.sample({ shift: top + 180 });
+    const next = { id: 'only-new', element, top: top - f.y, bottom: top + 180 - f.y };
+    return { posts: [next, ...old.posts], boxes: [next, ...old.boxes] };
+  };
+  f.at(180); f.insertHeight(180);
+  let after = read(); f.keeper.changed(after.posts, after);
+  assert.equal(f.y, 0);
+  f.at(180 + APPROXIMATE_WAIT_MS);
+  after = read(); f.keeper.tick(after.posts, after);
+  assert.equal(f.y, 0);
+  assert.deepEqual(f.moves, []);
 });
