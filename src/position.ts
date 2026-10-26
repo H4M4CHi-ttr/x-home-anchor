@@ -1,12 +1,12 @@
 import type { Anchor, Post, PostBox } from './model.ts';
 export const CORRECTION_MS = 1800;
 export const INPUT_QUIET_MS = 700;
-export function chooseAnchors(posts: Post[], viewportHeight: number): Anchor[] {
+export function chooseAnchors(posts: Post[], viewportHeight: number, viewportTop = 80): Anchor[] {
   const counts = new Map<string, number>();
   for (const post of posts) counts.set(post.id, (counts.get(post.id) ?? 0) + 1);
-  const visible = posts.filter(p => p.bottom > 80 && p.top < viewportHeight && counts.get(p.id) === 1);
+  const visible = posts.filter(p => p.bottom > viewportTop && p.top < viewportHeight && counts.get(p.id) === 1);
   // Prefer the first fully readable post; preserve neighbors' own offsets as fallbacks.
-  const first = visible.find(p => p.top >= 80) ?? visible[0];
+  const first = visible.find(p => p.top >= viewportTop) ?? visible[0];
   if (!first) return [];
   const index = posts.indexOf(first);
   return [first, ...[...posts.slice(index + 1, index + 5), ...posts.slice(Math.max(0, index - 2), index).reverse()].filter(p => counts.get(p.id) === 1)]
@@ -29,6 +29,7 @@ export const APPROXIMATE_WAIT_MS = 650;
 export interface PositionContext {
   boxes: PostBox[];
   displayedCount?: number;
+  boundary?: Anchor;
 }
 interface RefreshMeasurement {
   y: number;
@@ -36,6 +37,7 @@ interface RefreshMeasurement {
   ids: string[];
   documentHeight: number;
   initialDocumentHeight: number;
+  boundary?: Anchor & { knownIds: Set<string> };
   restoredY?: number;
   representativeHeight?: number;
   displayedCount?: number;
@@ -112,10 +114,13 @@ export class PositionKeeper {
     this.geometryAvailable = boxes.length > 0;
     if (!this.anchors.length && !boxes.length) { this.measurement = null; return; }
     const displayedCount = context?.displayedCount;
+    const boundary = context?.boundary;
     this.measurement = {
       y: this.win.scrollY, boxes: boxes.map(box => ({ element: box.element, y: box.top + this.win.scrollY })),
       ids: posts.map(post => post.id), documentHeight: this.win.document.documentElement.scrollHeight,
       initialDocumentHeight: this.win.document.documentElement.scrollHeight,
+      boundary: boundary && posts.filter(post => post.id === boundary.id).length === 1
+        ? { ...boundary, knownIds: new Set(posts.map(post => post.id)) } : undefined,
       representativeHeight: representativeHeight(boxes, this.win.innerHeight),
       ...(displayedCount !== undefined && displayedCount > 0 && Number.isSafeInteger(displayedCount) ? { displayedCount } : {}),
     };
@@ -181,6 +186,21 @@ export class PositionKeeper {
       baseline.updateAt = performance.now(); this.sawUpdate = true; this.lastActivity = baseline.updateAt;
     }
   }
+  private revealUnread(posts: Post[], boxes: PostBox[]) {
+    const measurement = this.measurement;
+    if (!measurement?.boundary || measurement.updateAt === undefined) return;
+    const boundary = measurement.boundary;
+    const index = posts.findIndex(post => post.id === boundary.id);
+    const next = posts[index - 1];
+    const boxIndex = boxes.findIndex(box => box.element === posts[index]?.element);
+    if (!next || boundary.knownIds.has(next.id) || boxes[boxIndex - 1]?.element !== next.element
+      || posts.filter(post => post.id === boundary.id).length !== 1 || posts.filter(post => post.id === next.id).length !== 1) return;
+    // Read the closest newly inserted post from its start, below the live header.
+    const shift = next.top - boundary.top;
+    this.anchors = chooseAnchors(posts.map(post => ({ ...post, top: post.top - shift, bottom: post.bottom - shift })), this.win.innerHeight, boundary.top);
+    measurement.boundary = undefined;
+    this.approximationUsed = true; // The old insertion estimate targets the previous post.
+  }
   private rememberRestoration(posts: Post[], boxes: PostBox[], sampledY: number) {
     const baseline = this.measurement;
     if (!baseline) return;
@@ -232,7 +252,7 @@ export class PositionKeeper {
     this.geometryAvailable = boxes.length > 0;
     if (this.checkDeadline() || (!this.anchors.length && !this.refreshing) || this.retired || performance.now() < this.quietUntil) return;
     const now = performance.now();
-    if (this.refreshing) this.measureUpdate(posts, boxes);
+    if (this.refreshing) { this.measureUpdate(posts, boxes); this.revealUnread(posts, boxes); }
     const moved = this.knownY - this.win.scrollY;
     const match = resolveAnchor(this.anchors, posts);
     // A layout batch may include native scroll anchoring. With no residual

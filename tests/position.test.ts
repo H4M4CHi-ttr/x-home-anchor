@@ -280,3 +280,63 @@ test('replaced posts prefer document growth over an unrepresentative old post pi
   assert.equal(f.y, 13012);
   assert.deepEqual(f.moves, [11962]);
 });
+
+
+for (const height of [180, 1200]) {
+  test(`refresh reveals the closest new post from its top below the sticky header; height ${height}`, t => {
+    const f = fixture(t); f.pageScroll(0);
+    const top = 112;
+    const before = f.sample({ shift: top });
+    f.keeper.refresh(before.posts, { ...before, displayedCount: COUNT, boundary: { id: '1', top } });
+    const element = {} as HTMLElement;
+    const read = () => {
+      const old = f.sample({ shift: INSERTION_HEIGHT + top });
+      const next = { id: 'new-tail', element, top: old.boxes[0].top - height, bottom: old.boxes[0].top };
+      return { posts: [next, ...old.posts], boxes: [next, ...old.boxes] };
+    };
+    f.at(180); f.insertHeight();
+    let current = read(); f.keeper.changed(current.posts, current);
+    assert.equal(f.y, INSERTION_HEIGHT - height);
+    assert.equal(read().posts[0].top, top);
+    f.at(500); f.pageScroll(0);
+    f.keeper.scrolled(() => read().posts, read);
+    assert.equal(read().posts[0].top, top, 'a later page scroll must preserve the new reading anchor');
+  });
+}
+
+test('refresh does not promote an already known predecessor to the new reading anchor', t => {
+  const f = fixture(t); f.pageScroll(0);
+  const top = 112;
+  const element = {} as HTMLElement;
+  const read = (shift: number) => {
+    const old = f.sample({ shift: top + shift });
+    const previous = { id: 'known-before', element, top: old.boxes[0].top - 180, bottom: old.boxes[0].top };
+    return { posts: [previous, ...old.posts], boxes: [previous, ...old.boxes] };
+  };
+  const before = read(0);
+  f.keeper.refresh(before.posts, { ...before, displayedCount: COUNT, boundary: { id: '1', top } });
+  f.at(180); f.insertHeight();
+  const after = read(INSERTION_HEIGHT); f.keeper.changed(after.posts, after);
+  assert.equal(f.y, INSERTION_HEIGHT);
+});
+
+
+test('a single new post already at the reading position does not receive a later count estimate', t => {
+  const f = fixture(t); f.pageScroll(0);
+  const top = 112;
+  const before = f.sample({ shift: top });
+  f.keeper.refresh(before.posts, { ...before, displayedCount: 1, boundary: { id: '1', top } });
+  const element = {} as HTMLElement;
+  const read = () => {
+    const old = f.sample({ shift: top + 180 });
+    const next = { id: 'only-new', element, top: top - f.y, bottom: top + 180 - f.y };
+    return { posts: [next, ...old.posts], boxes: [next, ...old.boxes] };
+  };
+  f.at(180); f.insertHeight(180);
+  let after = read(); f.keeper.changed(after.posts, after);
+  assert.equal(f.y, 0);
+  f.at(180 + APPROXIMATE_WAIT_MS);
+  after = read(); f.keeper.tick(after.posts, after);
+  assert.equal(f.y, 0);
+  assert.deepEqual(f.moves, []);
+});

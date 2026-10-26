@@ -138,8 +138,11 @@ export class HomeController {
       if (intent === 'refresh' && event.isTrusted && this.root && this.isCurrent() && this.state === 'active') {
         const sample = this.currentSample();
         if (!sample || sample.overLimit) { this.keeper.interrupt(); this.paintGuard.stop(); return; }
-        this.keeper.refresh(sample.posts, { boxes: sample.boxes, ...refreshDetails(event.target) });
-        this.expireCorrection(); if (this.keeper.refreshing) this.paintGuard.start(this.root, timelineViewportTop(this.root, this.win));
+        const viewportTop = timelineViewportTop(this.root, this.win);
+        const control = event.target instanceof Element ? event.target.closest('a, button, [role="button"], [role="tab"]') : null;
+        const boundary = sample.posts.find(post => post.top >= (control?.getBoundingClientRect().bottom ?? Infinity));
+        this.keeper.refresh(sample.posts, { boxes: sample.boxes, ...refreshDetails(event.target), boundary: boundary ? { id: boundary.id, top: viewportTop } : undefined });
+        this.expireCorrection(); if (this.keeper.refreshing) this.paintGuard.start(this.root, viewportTop);
       } else if (intent === 'navigate') { this.keeper.interrupt(); this.paintGuard.stop(); }
       this.settle();
     }, { signal, capture: true });

@@ -70,7 +70,7 @@
     setTimeout(() => scrollTo(0, 0), 60);
     if (scenario === 'late-page-scroll') setTimeout(() => scrollBy(0, 1051), 1200);
     setTimeout(() => {
-      posts = [...Array.from({length: 35}, (_, i) => ({id: 2000 + i, height: 195})), ...posts];
+      posts = [...Array.from({length: scenario === 'single-boundary' ? 1 : 35}, (_, i) => ({id: 2000 + i, height: scenario === 'tall-boundary' && i === 34 ? 1200 : 195})), ...posts];
       render();
       const action = document.createElement('button'); action.id = 'underlying-action'; action.textContent = 'New action';
       action.style.cssText = 'position:fixed;left:200px;top:300px;width:140px;height:44px';

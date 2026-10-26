@@ -155,7 +155,11 @@ try {
   activeFixture = await readFile(new URL('tests/fixtures/refresh.html', root), 'utf8');
   async function beginRefresh(scenario = 'virtualized') {
     await reset();
-    await evaluate(`window.scenario=${JSON.stringify(scenario)};scrollTo(0,1050)`); await delay(1000);
+    const atBoundary = ['reading-boundary', 'tall-boundary', 'single-boundary'].includes(scenario);
+    await evaluate(`window.scenario=${JSON.stringify(scenario)};scrollTo(0,${atBoundary ? 0 : 1050})`);
+    if (scenario === 'custom') await evaluate('document.querySelector("[role=tab]").textContent="AI"');
+    if (scenario === 'single-boundary') await evaluate('document.querySelector("#refresh").textContent="Show 1 new post"');
+    await delay(1000);
     const before = await evaluate('readViewport()');
     p = await evaluate('(()=>{const r=document.querySelector("#refresh").getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2}})()');
     await press(p); await mouse('mouseReleased', p);
@@ -178,6 +182,25 @@ try {
   reports.refresh = { before: beforeRefresh, after: refreshed.final, checkedFrames: refreshed.frames.length, coveredFrames: refreshed.frames.filter(frame => frame.covered).length };
   const refreshShot = await command('Page.captureScreenshot', { format: 'png' });
   await writeFile(new URL(`verification/${evidencePrefix}-refresh.png`, root), Buffer.from(refreshShot.data, 'base64'));
+  for (const scenario of ['custom', 'reading-boundary', 'tall-boundary', 'single-boundary']) {
+    const before = await beginRefresh(scenario); await delay(3600);
+    const result = await evaluate('({frames,final:readViewport()})');
+    const expectedId = scenario === 'custom' ? before.post.id : scenario === 'single-boundary' ? '/synthetic/status/2000' : '/synthetic/status/2034';
+    const expectedTop = scenario === 'custom' ? before.post.top : 80;
+    assert.ok(result.frames.some(frame => frame.covered), scenario);
+    assert.ok(result.frames.every(frame => frame.covered
+      ? frame.post?.id === before.post.id && Math.abs(frame.post.top - before.post.top) < 1
+      : frame.post?.id === expectedId && Math.abs(frame.post.top - expectedTop) < 1), scenario);
+    if (scenario === 'single-boundary') assert.ok(result.frames.every(frame => frame.y === 0), 'one already visible new post needs no scroll estimate');
+    assert.equal(result.final.covered, false, scenario);
+    assert.equal(result.final.post.id, expectedId, scenario);
+    assert.ok(Math.abs(result.final.post.top - expectedTop) < 1, scenario);
+    reports[`refresh_${scenario}`] = { before, after:result.final, checkedFrames:result.frames.length };
+    if (scenario === 'reading-boundary') {
+      const shot = await command('Page.captureScreenshot', { format: 'png' });
+      await writeFile(new URL(`verification/${evidencePrefix}-reading-boundary.png`, root), Buffer.from(shot.data, 'base64'));
+    }
+  }
   await beginRefresh(); await delay(300);
   const coveredAction = await evaluate('(()=>{const r=document.querySelector("#underlying-action").getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2}})()');
   await press(coveredAction); await mouse('mouseReleased', coveredAction);

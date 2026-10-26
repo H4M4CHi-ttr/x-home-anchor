@@ -3,7 +3,8 @@
 This Manifest V3 extension uses an isolated content script and an action popup.
 There is no background worker, runtime package dependency or server. The manifest
 matches only `https://x.com/*`; the controller activates the timeline features on
-`/home`. Repost-button holds work on identifiable posts independently of home/tab
+`/home`, including named custom tabs. Tab identity combines its header-tablist
+position and label, so duplicate labels remain distinct. Repost-button holds work on identifiable posts independently of home/tab
 recognition. Position preservation is always enabled, with no saved setting or API
 permissions. Installation and user operations are described in [README.md](README.md).
 
@@ -25,7 +26,7 @@ target replacement. They do not reproduce a full browser timeline or measure
 rendering timing. They cannot establish live-X compatibility.
 
 The [refresh viewport verification record](verification/refresh-viewport.json) separates current synthetic
-checks from one successful live-X acquisition. Raw live-page data stays outside the
+checks from the scoped live-X acquisitions. Raw live-page data stays outside the
 repository. The [0.2.6 verification record](verification/0.2.6.json) describes the automated
 checks, synthetic browser interaction evidence and unverified live-X scope.
 The [0.2.5 browser verification record](verification/0.2.5.json) retains the earlier
@@ -34,7 +35,8 @@ timeline checks, popup inspection and transport stubs.
 `npm run test:browser` builds and drives a dedicated headless Chrome through CDP
 using trusted mouse/touch/keyboard input and the synthetic repost/refresh fixtures.
 Refresh checks cover per-frame post identity and position, canvas pixels, accidental-click
-prevention, keyboard focus, root replacement, late page scroll, imprecise heights and cancellation.
+prevention, keyboard focus, root replacement, late page scroll, imprecise heights,
+custom tabs, unread-boundary alignment (including tall posts) and cancellation.
 Set `CHROME_BIN` to the Chrome executable if it is not `/opt/google/chrome/chrome`.
 Every document response is synthetic; other requests are blocked. Extension
 messaging is stubbed and the fixture intercepts quote navigation to keep the
@@ -94,6 +96,13 @@ post IDs remains distinct from an unrecognized region; quote IDs must never repl
 outer-post IDs. After trusted recognized new-post activation, prefer exact restoration,
 then one bounded downward approximation while retaining the original anchors until
 the original deadline. Recovered IDs can correct the estimate without repeating it.
+When the old first post below the refresh control is recovered, a uniquely
+identified new post immediately before it becomes the reading anchor at the sticky
+header's lower edge. Promote it only once; keep the old viewport cover until the
+normal reveal and preserve all cancellation/deadline rules. Unknown adjacent posts
+or previously known IDs must not be promoted. Promotion retires the old insertion
+estimate, including when the new reading anchor already has zero displacement. The original known-ID set is temporary
+and bounded by the same 500-post sample.
 Observed update evidence allows approximation
 after a 650 ms recovery grace; an inconclusive update still allows count-based
 fallback at three seconds when document growth or a displayed count and representative pitch are

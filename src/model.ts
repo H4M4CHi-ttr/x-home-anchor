@@ -1,4 +1,4 @@
-export type Timeline = 'for-you' | 'following';
+export type Timeline = `${number}:${string}`;
 export type State = 'outside' | 'active' | 'unrecognized';
 export interface PostBox { element: HTMLElement; top: number; bottom: number }
 export interface Post extends PostBox { id: string }

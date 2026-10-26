@@ -1,36 +1,29 @@
 {
   "date": "2026-10-26",
-  "content_sha256": "b618887711797929c2da55bb3b7b6f5a69b20b02c9468491bda8450e9d1b7bc6",
+  "content_sha256": "1061072b42b8169882bd107c7562525db16fc5f87e7cd8fb270dc89aa514fb24",
   "automated": {
     "typecheck": "passed",
-    "unit_tests_passed": 72,
-    "browser_checks_passed": 22,
+    "unit_tests_passed": 79,
+    "browser_checks_passed": 26,
     "browser": "Chrome/155.0.8059.85",
-    "details": "Generated locally by npm run test:browser; detailed logs and screenshots are not committed."
+    "details": "Custom tabs, tall and single unread posts, virtualized restoration and cancellation. Raw reports/screenshots are local only."
   },
   "live": {
-    "method": "Chrome DevTools MCP 1.10.1; native unpacked extension in the selected AI Agent profile; trusted click and Tab input; temporary DOM sampling only.",
-    "scope": "Signed-in https://x.com/home; Japanese For you timeline.",
-    "normal_refresh": {
-      "displayed_count": 35,
-      "sampled_frames": 283,
-      "frames_at_original_anchor_position": 283,
-      "before_anchor_top_css_px": 223.33334350585938,
-      "after_anchor_top_css_px": 223.33334350585938,
-      "position_error_css_px": 0.0,
-      "cover_removed": true
-    },
-    "keyboard_cancel": {
-      "displayed_count": 70,
-      "cover_before_Tab": true,
-      "cover_after_Tab": false,
-      "focus_moved_after_reveal": true,
-      "Tab_default_prevented": false
-    }
+    "method": "Chrome DevTools MCP 1.10.1; native unpacked extension in AI Agent Chrome; trusted click; temporary DOM sampling only.",
+    "scope": "Final build: signed-in x.com/home custom Software timeline in Japanese.",
+    "displayed_count": 35,
+    "sampled_frames": 322,
+    "covered_frames_at_original_position": 124,
+    "closest_neighbor_is_new": true,
+    "header_bottom_css_px": 53.66666793823242,
+    "new_post_top_css_px": 54,
+    "alignment_error_css_px": 0.3333320617675781,
+    "cover_removed": true
   },
   "limits": [
-    "One normal acquisition and one Tab cancellation; Following, other accounts, languages and long-running use are not live-verified.",
-    "The page scrolls internally. Missing saved IDs can still leave an approximate result; decoded-media differences may remain.",
-    "Raw live identifiers and screenshots stay outside Git. Network acquisition counts, frequency and universal limits were not measured."
+    "AI custom timeline also passed a preliminary 35-count acquisition before the final single-post estimate guard.",
+    "Following, all custom timelines, other accounts/languages and long-running use were not live-verified.",
+    "Unknown or ambiguous adjacent posts retain ordinary restoration. Tall posts start below the header but may exceed the viewport.",
+    "Raw live identifiers and screenshots stay outside Git; network acquisition counts and frequency were not measured."
   ]
 }

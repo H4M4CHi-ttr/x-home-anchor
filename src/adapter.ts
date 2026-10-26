@@ -8,12 +8,10 @@ export function isHome(url: URL): boolean {
 }
 
 export function timelineKind(doc: Document): Timeline | null {
-  const primary = doc.querySelector(primarySelector);
-  const selected = primary?.querySelector('[role="tab"][aria-selected="true"]');
-  const text = selected?.textContent?.replace(/\s+/g, ' ').trim().toLowerCase();
-  if (text === 'おすすめ' || text === 'for you') return 'for-you';
-  if (text === 'フォロー中' || text === 'following') return 'following';
-  return null;
+  const tabs = [...doc.querySelector(primarySelector)?.querySelector('[role="tablist"]')?.querySelectorAll('[role="tab"]') ?? []];
+  const index = tabs.findIndex(tab => tab.getAttribute('aria-selected') === 'true');
+  const text = tabs[index]?.textContent?.replace(/\s+/g, ' ').trim();
+  return text ? `${index}:${text}` : null;
 }
 
 export function timelineRoot(doc: Document): HTMLElement | null {
