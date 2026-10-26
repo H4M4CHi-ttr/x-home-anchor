@@ -40,7 +40,8 @@ export function openQuotes(target: RepostTarget, signal: AbortSignal): void {
   const timer = win.setTimeout(fallback, 1000);
   const cancel = () => finish();
   const options = { signal: listeners.signal, capture: true, passive: true };
-  for (const type of ['pointerdown', 'wheel', 'keydown', 'popstate', 'pagehide']) win.addEventListener(type, cancel, options);
+  for (const type of ['pointerdown', 'pointercancel', 'wheel', 'scroll', 'keydown', 'popstate', 'pagehide']) win.addEventListener(type, cancel, options);
+  win.addEventListener('blur', event => { if (event.target === win) cancel(); }, options);
   doc.addEventListener('visibilitychange', () => { if (doc.hidden) cancel(); }, options);
   signal.addEventListener('abort', cancel, options);
   const navigation = (win as Window & { navigation?: EventTarget }).navigation;

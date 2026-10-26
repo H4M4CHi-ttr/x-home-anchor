@@ -112,11 +112,12 @@ test('partial ID recovery without position movement still permits one counted do
   keeper.scrolled(sample, () => ({ boxes: sample() }));
   assert.equal(win.scrollY, 7350);
   assert.deepEqual(scrolls, [6300]);
-  assert.equal(keeper.refreshing, false);
-  assert.equal(keeper.correcting, false);
+  assert.equal(keeper.refreshing, true);
+  assert.equal(keeper.correcting, true);
 
   now = 6100;
   keeper.changed(sample(), { boxes: sample() });
   keeper.tick(sample(), { boxes: sample() });
   assert.deepEqual(scrolls, [6300]);
+  assert.equal(keeper.refreshing, false);
 });

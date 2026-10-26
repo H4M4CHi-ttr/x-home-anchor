@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-26",
+  "content_sha256": "1061072b42b8169882bd107c7562525db16fc5f87e7cd8fb270dc89aa514fb24",
+  "automated": {
+    "typecheck": "passed",
+    "unit_tests_passed": 79,
+    "browser_checks_passed": 26,
+    "browser": "Chrome/155.0.8059.85",
+    "details": "Custom tabs, tall and single unread posts, virtualized restoration and cancellation. Raw reports/screenshots are local only."
+  },
+  "live": {
+    "method": "Chrome DevTools MCP 1.10.1; native unpacked extension in AI Agent Chrome; trusted click; temporary DOM sampling only.",
+    "scope": "Final build: signed-in x.com/home custom Software timeline in Japanese.",
+    "displayed_count": 35,
+    "sampled_frames": 322,
+    "covered_frames_at_original_position": 124,
+    "closest_neighbor_is_new": true,
+    "header_bottom_css_px": 53.66666793823242,
+    "new_post_top_css_px": 54,
+    "alignment_error_css_px": 0.3333320617675781,
+    "cover_removed": true
+  },
+  "limits": [
+    "AI custom timeline also passed a preliminary 35-count acquisition before the final single-post estimate guard.",
+    "Following, all custom timelines, other accounts/languages and long-running use were not live-verified.",
+    "Unknown or ambiguous adjacent posts retain ordinary restoration. Tall posts start below the header but may exceed the viewport.",
+    "Raw live identifiers and screenshots stay outside Git; network acquisition counts and frequency were not measured."
+  ]
+}

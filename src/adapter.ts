@@ -8,12 +8,10 @@ export function isHome(url: URL): boolean {
 }
 
 export function timelineKind(doc: Document): Timeline | null {
-  const primary = doc.querySelector(primarySelector);
-  const selected = primary?.querySelector('[role="tab"][aria-selected="true"]');
-  const text = selected?.textContent?.replace(/\s+/g, ' ').trim().toLowerCase();
-  if (text === 'おすすめ' || text === 'for you') return 'for-you';
-  if (text === 'フォロー中' || text === 'following') return 'following';
-  return null;
+  const tabs = [...doc.querySelector(primarySelector)?.querySelector('[role="tablist"]')?.querySelectorAll('[role="tab"]') ?? []];
+  const index = tabs.findIndex(tab => tab.getAttribute('aria-selected') === 'true');
+  const text = tabs[index]?.textContent?.replace(/\s+/g, ' ').trim();
+  return text ? `${index}:${text}` : null;
 }
 
 export function timelineRoot(doc: Document): HTMLElement | null {
@@ -25,6 +23,18 @@ export function timelineRoot(doc: Document): HTMLElement | null {
     if (/^(Timeline:|タイムライン[:：])/.test(label)) return region;
   }
   return null;
+}
+
+// Keep the live sticky header outside the refresh-only viewport copy.
+export function timelineViewportTop(root: HTMLElement, win: Window): number {
+  const primary = root.closest(primarySelector);
+  let top = 0;
+  for (let node = primary?.querySelector<HTMLElement>('[role="tablist"]') ?? null; node && primary?.contains(node); node = node.parentElement) {
+    const position = win.getComputedStyle(node).position;
+    const rect = node.getBoundingClientRect();
+    if ((position === 'sticky' || position === 'fixed') && rect.top <= 1 && rect.bottom > 0) top = Math.max(top, rect.bottom);
+  }
+  return top;
 }
 
 const excludedContent = '[data-testid="quoteTweet"], [data-testid="card.wrapper"], [data-testid="tweetText"]';

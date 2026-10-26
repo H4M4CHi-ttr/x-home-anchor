@@ -1,0 +1,82 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Refresh viewport synthetic fixture</title>
+<style>
+  body { margin: 0; background: #101214; color: #eee; font: 16px system-ui; }
+  main { width: 580px; margin: auto; }
+  header { position: fixed; top: 0; height: 80px; width: 580px; background: #101214; z-index: 10; }
+  header button { position: absolute; right: 0; top: 12px; }
+  .timeline { padding-top: 80px; }
+  .list { position: relative; }
+  .cell { position: absolute; width: 100%; }
+  article { box-sizing: border-box; border: 1px solid #555; padding: 16px; }
+  a { color: #90caf9; }
+</style>
+<main data-testid="primaryColumn">
+  <header><div role="tablist"><div role="tab" aria-selected="true">For you</div></div><button id="refresh">Show 35 new posts</button></header>
+  <section class="timeline" aria-label="Timeline: Synthetic"><div class="list"></div></section>
+</main>
+<script>
+  window.events = [];
+  window.frames = [];
+  window.badClicks = 0;
+  window.scenario = 'virtualized';
+  let list = document.querySelector('.list');
+  let posts = Array.from({length: 70}, (_, i) => ({id: 1000 + i, height: 180}));
+  let rendering = false;
+  function render() {
+    const cells = [];
+    let top = 0;
+    for (const post of posts) {
+      if (top + post.height > scrollY - 900 && top < scrollY + innerHeight + 1200) {
+        const cell = document.createElement('div'); cell.className = 'cell'; cell.dataset.testid = 'cellInnerDiv';
+        cell.style.transform = `translateY(${top}px)`;
+        cell.innerHTML = `<article data-testid="tweet" style="height:${post.height}px"><div data-testid="User-Name"><a href="/synthetic/status/${post.id}"><time>Post ${post.id}</time></a></div><p data-testid="tweetText">Synthetic post ${post.id}</p></article>`;
+        if (post.id === 1006) {
+          const canvas = document.createElement('canvas'); canvas.width = 100; canvas.height = 20;
+          const context = canvas.getContext('2d'); context.fillStyle = 'rgb(220, 80, 140)'; context.fillRect(0, 0, 100, 20);
+          cell.querySelector('article').append(canvas);
+        }
+        cells.push(cell);
+      }
+      top += post.height;
+    }
+    list.style.minHeight = `${top - (scenario === 'imprecise-height' && posts.length > 70 ? 525 : 0)}px`; list.replaceChildren(...cells);
+  }
+  addEventListener('scroll', () => {
+    if (rendering) return;
+    rendering = true;
+    requestAnimationFrame(() => { rendering = false; render(); });
+  });
+  function visible(root) {
+    return Array.from(root?.querySelectorAll('article[data-testid="tweet"]') ?? []).map(el => ({
+      id: el.querySelector('time')?.closest('a')?.getAttribute('href'), top: el.getBoundingClientRect().top,
+    })).find(post => post.top >= 80 && post.top < innerHeight);
+  }
+  window.readViewport = () => {
+    const cover = document.querySelector('#x-home-refresh-cover');
+    return { y: scrollY, covered: !!cover, post: visible(cover ?? list), actual: visible(list) };
+  };
+  document.querySelector('#refresh').addEventListener('click', () => {
+    frames = [];
+    const until = performance.now() + 3500;
+    const record = () => { frames.push(readViewport()); if (performance.now() < until) requestAnimationFrame(record); };
+    requestAnimationFrame(record);
+    if (scenario === 'no-update') return;
+    if (scenario === 'replacement') setTimeout(() => {
+      const old = document.querySelector('.timeline'); const next = old.cloneNode(true);
+      old.replaceWith(next); list = next.querySelector('.list');
+    }, 120);
+    setTimeout(() => scrollTo(0, 0), 60);
+    if (scenario === 'late-page-scroll') setTimeout(() => scrollBy(0, 1051), 1200);
+    setTimeout(() => {
+      posts = [...Array.from({length: scenario === 'single-boundary' ? 1 : 35}, (_, i) => ({id: 2000 + i, height: scenario === 'tall-boundary' && i === 34 ? 1200 : 195})), ...posts];
+      render();
+      const action = document.createElement('button'); action.id = 'underlying-action'; action.textContent = 'New action';
+      action.style.cssText = 'position:fixed;left:200px;top:300px;width:140px;height:44px';
+      action.addEventListener('click', () => badClicks++); document.querySelector('main').append(action);
+    }, 180);
+  });
+  render();
+  window.chrome = { runtime: { id: 'synthetic-extension', onMessage: { addListener() {}, removeListener() {} } } };
+</script>
